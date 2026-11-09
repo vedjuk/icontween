@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!-- comment -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" onload="alert(1)" fill="none" stroke="black">
+  <script>alert('x')</script>
+  <foreignObject width="10" height="10"><div xmlns="http://www.w3.org/1999/xhtml">hi</div></foreignObject>
+  <a xlink:href="javascript:alert(1)"><path d="M0 0 L1 1"/></a>
+  <image href="https://evil.example/track.png" width="1" height="1"/>
+  <use href="#p"/>
+  <style>path { stroke: url(https://evil.example/x) }</style>
+  <path id="p" d="M2 2 L22 22" onclick="alert(2)" style="stroke: url(https://evil.example/s); stroke-width: 2" fill="url(#g)"/>
+</svg>

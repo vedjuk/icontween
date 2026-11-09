@@ -1,3 +1,5 @@
 export * from './schema';
 export * from './path';
 export * from './validate';
+export * from './geometry';
+export * from './prepare';

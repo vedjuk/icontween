@@ -6,3 +6,8 @@
   Placeholder page with the two-tone wordmark and a draw-on check. Cloudflare hosting and domain deferred until the app is functional (owner decision).
 - **2026-11-09** — Brand: name rule (IconTween in text, lowercase icontween in the logo) and
   vermilion accent replacing the violet placeholder. See decision 002.
+- **2026-11-09** — M1 part 1: prepare pipeline in `core` (parse, sanitize, styles, shapes →
+  paths, transforms flattened, arcs/quadratics/shorthands → M/L/C/Z, rounding, state A,
+  cleanup report with `describeReport()`). Own geometry instead of svgpath (decision 003).
+  14 SVG fixtures, 88 tests total. Next: paste/upload UI with overlay comparison and the 12
+  Lucide starter icons.
