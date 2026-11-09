@@ -38,7 +38,11 @@ export function iconToSvg(
     }
     const transform = transformAttribute(es);
     if (transform) attrs.push(['transform', transform]);
-    if (es.opacity !== 1) attrs.push(['opacity', formatNumber(es.opacity)]);
+    const paint = paintAttributes(es);
+    for (const key of ['opacity', 'pathLength', 'strokeDasharray', 'strokeDashoffset'] as const) {
+      const value = paint[key];
+      if (value !== undefined) attrs.push([PAINT_NAMES[key], value]);
+    }
     const body = attrs.map(([k, v]) => `${k}="${escape(v)}"`).join(' ');
     return `${indent}<path ${body} />`;
   });
@@ -47,6 +51,43 @@ export function iconToSvg(
     ...lines,
     '</svg>',
   ].join('\n');
+}
+
+const PAINT_NAMES = {
+  opacity: 'opacity',
+  pathLength: 'pathLength',
+  strokeDasharray: 'stroke-dasharray',
+  strokeDashoffset: 'stroke-dashoffset',
+} as const;
+
+/** Opacity and partial-draw attributes of an element state (absent when at their default). */
+export interface PaintAttributes {
+  opacity?: string;
+  pathLength?: string;
+  strokeDasharray?: string;
+  strokeDashoffset?: string;
+}
+
+/**
+ * Opacity and draw as SVG attributes, exactly as the runtime writes them (tested): a partly
+ * drawn path gets pathLength="1" and a dash, and a fully undrawn one is hidden (a
+ * zero-length dash would still paint round caps). Out-of-range values are clamped.
+ */
+export function paintAttributes(es: ElementState): PaintAttributes {
+  const clamp = (n: number) => Math.min(1, Math.max(0, n));
+  const start = clamp(es.draw.start);
+  const end = clamp(es.draw.end);
+  const drawn = end - start;
+  const partial = start > 0 || end < 1;
+  const opacity = clamp(es.opacity) * (partial && drawn <= 0.0005 ? 0 : 1);
+  const out: PaintAttributes = {};
+  if (opacity !== 1) out.opacity = formatNumber(opacity);
+  if (partial) {
+    out.pathLength = '1';
+    out.strokeDasharray = `${formatNumber(Math.max(drawn, 0))} 2`;
+    out.strokeDashoffset = formatNumber(-start);
+  }
+  return out;
 }
 
 /** SVG transform for an element state, or '' when it's the identity. */

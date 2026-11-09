@@ -1,5 +1,7 @@
 import {
   getPoint,
+  pivotPresets,
+  type Animation,
   type Easing,
   type Sequence,
   type Transition,
@@ -91,6 +93,10 @@ export function Inspector() {
           ))}
         </ul>
       </section>
+
+      {elementId && state.elements[elementId] && (
+        <ElementValues animation={animation} stateId={stateId} elementId={elementId} />
+      )}
 
       {point && at && (
         <section>
@@ -215,6 +221,200 @@ export function Inspector() {
         </label>
       </section>
     </aside>
+  );
+}
+
+const PIVOT_LABELS = [
+  ['top left', 'top', 'top right'],
+  ['left', 'centre', 'right'],
+  ['bottom left', 'bottom', 'bottom right'],
+];
+
+/** Transform, pivot, opacity and draw of the selected element in the edited state. */
+function ElementValues({
+  animation,
+  stateId,
+  elementId,
+}: {
+  animation: Animation;
+  stateId: string;
+  elementId: string;
+}) {
+  const { setValues, setPivot, resetValues } = useEditor.getState();
+  const es = animation.states.find((s) => s.id === stateId)!.elements[elementId]!;
+  const t = es.transform;
+  const name = animation.elements.find((e) => e.id === elementId)?.name ?? elementId;
+  const isDefault =
+    t.translateX === 0 &&
+    t.translateY === 0 &&
+    t.rotate === 0 &&
+    t.scale === 1 &&
+    es.opacity === 1 &&
+    es.draw.start === 0 &&
+    es.draw.end === 1;
+  const pct = (n: number) => Math.round(n * 1000) / 10;
+
+  return (
+    <section>
+      <h2 className="section-title">
+        {name} in {stateId}
+      </h2>
+
+      <div className="field">
+        <span>Move</span>
+        <div className="xy">
+          <NumberField
+            label="X"
+            value={t.translateX}
+            step={0.1}
+            onChange={(v) => setValues({ transform: { translateX: v } })}
+          />
+          <NumberField
+            label="Y"
+            value={t.translateY}
+            step={0.1}
+            onChange={(v) => setValues({ transform: { translateY: v } })}
+          />
+        </div>
+      </div>
+
+      <div className="xy">
+        <NumberField
+          label="Rotate °"
+          value={t.rotate}
+          step={1}
+          onChange={(v) => setValues({ transform: { rotate: v } })}
+        />
+        <NumberField
+          label="Scale %"
+          value={pct(t.scale)}
+          step={5}
+          onChange={(v) => setValues({ transform: { scale: v / 100 } })}
+        />
+      </div>
+
+      <div className="field">
+        <span>Pivot (all states)</span>
+        <div className="pivot">
+          <div className="pivot-grid" role="group" aria-label="Pivot presets">
+            {pivotPresets(animation, elementId).map((p) => (
+              <button
+                key={`${p.col}-${p.row}`}
+                type="button"
+                aria-label={`Pivot ${PIVOT_LABELS[p.row]![p.col]}`}
+                aria-pressed={p.x === t.originX && p.y === t.originY}
+                onClick={() => setPivot(p.x, p.y)}
+              />
+            ))}
+          </div>
+          <div className="pivot-xy">
+            <NumberField
+              label="X"
+              value={t.originX}
+              step={0.5}
+              onChange={(v) => setPivot(v, t.originY)}
+            />
+            <NumberField
+              label="Y"
+              value={t.originY}
+              step={0.5}
+              onChange={(v) => setPivot(t.originX, v)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <RangeField
+        label="Opacity"
+        value={pct(es.opacity)}
+        onChange={(v) => setValues({ opacity: v / 100 })}
+      />
+      <RangeField
+        label="Draw start"
+        value={pct(es.draw.start)}
+        onChange={(v) => setValues({ draw: { start: v / 100 } })}
+      />
+      <RangeField
+        label="Draw end"
+        value={pct(es.draw.end)}
+        onChange={(v) => setValues({ draw: { end: v / 100 } })}
+      />
+
+      <button type="button" className="button" disabled={isDefault} onClick={resetValues}>
+        Reset {name} in {stateId}
+      </button>
+      <p className="hint">
+        Drag the element to move it, the cross to move its pivot. Arrow keys nudge it when no point
+        is selected.
+      </p>
+    </section>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  step: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="field-inline">
+      <span>{label}</span>
+      <input
+        type="number"
+        step={step}
+        value={value}
+        onChange={(e) => {
+          if (Number.isFinite(e.target.valueAsNumber)) onChange(e.target.valueAsNumber);
+        }}
+      />
+    </label>
+  );
+}
+
+/** A 0–100 % slider with a number field. */
+function RangeField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (Number.isFinite(e.target.valueAsNumber)) onChange(e.target.valueAsNumber);
+  };
+  return (
+    <div className="field range">
+      <span>{label}</span>
+      <div className="range-row">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={value}
+          aria-label={label}
+          onChange={change}
+        />
+        <input
+          type="number"
+          min={0}
+          max={100}
+          step={1}
+          value={value}
+          aria-label={`${label} in percent`}
+          onChange={change}
+        />
+        <span className="range-unit">%</span>
+      </div>
+    </div>
   );
 }
 

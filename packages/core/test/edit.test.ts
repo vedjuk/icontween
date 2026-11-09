@@ -6,9 +6,15 @@ import {
   createAnimation,
   editablePoints,
   movePoint,
+  iconToSvg,
   nextStateId,
+  paintAttributes,
+  pivotPresets,
   prepareSvg,
+  resetElementValues,
   setElementSegments,
+  setElementValues,
+  setPivot,
   validateAnimation,
   type Segment,
 } from '../src';
@@ -135,5 +141,116 @@ describe('setElementSegments', () => {
     expect(next.states[1]!.elements['el-1']!.segments[0]).toEqual({ cmd: 'M', x: 5, y: 5 });
     expect(next.states[0]).toBe(animation.states[0]);
     expect(() => setElementSegments(animation, 'B', 'el-1', moved.slice(1))).toThrow(/structure/);
+  });
+});
+
+describe('setElementValues', () => {
+  const withB = () =>
+    addStateCopy(createAnimation(prepared(), { id: 'a', name: 'a' }), 'A').animation;
+
+  it('changes transform, opacity and draw in one state only, rounded', () => {
+    const animation = withB();
+    const next = setElementValues(animation, 'B', 'el-1', {
+      transform: { rotate: 45.12345, translateY: -2 },
+      opacity: 0.5,
+      draw: { end: 0.25 },
+    });
+    const es = next.states[1]!.elements['el-1']!;
+    expect(es.transform).toMatchObject({ rotate: 45.123, translateY: -2, translateX: 0, scale: 1 });
+    expect(es.opacity).toBe(0.5);
+    expect(es.draw).toEqual({ start: 0, end: 0.25 });
+    expect(next.states[0]).toBe(animation.states[0]);
+    expect(animation.states[1]!.elements['el-1']!.opacity).toBe(1);
+    expect(validateAnimation(next).ok).toBe(true);
+  });
+
+  it('clamps opacity and draw, and stops draw start and end at each other', () => {
+    let a = setElementValues(withB(), 'B', 'el-1', { opacity: 1.5, draw: { end: 0.4 } });
+    a = setElementValues(a, 'B', 'el-1', { draw: { start: 0.9 } });
+    expect(a.states[1]!.elements['el-1']!.opacity).toBe(1);
+    expect(a.states[1]!.elements['el-1']!.draw).toEqual({ start: 0.4, end: 0.4 });
+    a = setElementValues(a, 'B', 'el-1', { draw: { end: 0.1 } });
+    expect(a.states[1]!.elements['el-1']!.draw).toEqual({ start: 0.4, end: 0.4 });
+    a = setElementValues(a, 'B', 'el-1', { draw: { start: -1, end: 2 }, opacity: -3 });
+    expect(a.states[1]!.elements['el-1']!.draw).toEqual({ start: 0, end: 1 });
+    expect(a.states[1]!.elements['el-1']!.opacity).toBe(0);
+    expect(validateAnimation(a).ok).toBe(true);
+  });
+
+  it('ignores non-finite numbers and pivot keys, and rejects unknown ids', () => {
+    const a = withB();
+    const next = setElementValues(a, 'B', 'el-1', {
+      transform: { rotate: NaN, originX: 99 } as never,
+      opacity: Infinity,
+    });
+    expect(next.states[1]!.elements['el-1']).toEqual(a.states[1]!.elements['el-1']);
+    expect(() => setElementValues(a, 'Q', 'el-1', {})).toThrow(/Unknown state/);
+    expect(() => setElementValues(a, 'B', 'nope', {})).toThrow(/no element/);
+  });
+
+  it('resets values but keeps the pivot', () => {
+    let a = setPivot(withB(), 'el-1', 3, 4);
+    a = setElementValues(a, 'B', 'el-1', {
+      transform: { rotate: 10, scale: 2, translateX: 1 },
+      opacity: 0.2,
+      draw: { start: 0.5 },
+    });
+    const es = resetElementValues(a, 'B', 'el-1').states[1]!.elements['el-1']!;
+    expect(es.transform).toEqual({
+      translateX: 0,
+      translateY: 0,
+      rotate: 0,
+      scale: 1,
+      originX: 3,
+      originY: 4,
+    });
+    expect(es.opacity).toBe(1);
+    expect(es.draw).toEqual({ start: 0, end: 1 });
+  });
+});
+
+describe('setPivot / pivotPresets', () => {
+  it('sets one pivot for the element in every state', () => {
+    const a = setPivot(
+      addStateCopy(createAnimation(prepared(), { id: 'a', name: 'a' }), 'A').animation,
+      'el-2',
+      9.12345,
+      5,
+    );
+    for (const state of a.states) {
+      expect(state.elements['el-2']!.transform).toMatchObject({ originX: 9.123, originY: 5 });
+    }
+    expect(a.states[0]!.elements['el-1']!.transform.originX).not.toBe(9.123);
+  });
+
+  it('offers the 3 × 3 grid of the element’s box in state A', () => {
+    // el-2 is the circle at (9, 7) with r 2.
+    const presets = pivotPresets(createAnimation(prepared(), { id: 'a', name: 'a' }), 'el-2');
+    expect(presets).toHaveLength(9);
+    expect(presets[0]).toEqual({ col: 0, row: 0, x: 7, y: 5 });
+    expect(presets[4]).toEqual({ col: 1, row: 1, x: 9, y: 7 });
+    expect(presets[8]).toEqual({ col: 2, row: 2, x: 11, y: 9 });
+  });
+});
+
+describe('paintAttributes', () => {
+  it('is empty at the defaults and describes partial draws', () => {
+    const es = createAnimation(prepared(), { id: 'a', name: 'a' }).states[0]!.elements['el-1']!;
+    expect(paintAttributes(es)).toEqual({});
+    expect(paintAttributes({ ...es, opacity: 0.5, draw: { start: 0.25, end: 0.75 } })).toEqual({
+      opacity: '0.5',
+      pathLength: '1',
+      strokeDasharray: '0.5 2',
+      strokeDashoffset: '-0.25',
+    });
+    expect(paintAttributes({ ...es, draw: { start: 0.5, end: 0.5 } }).opacity).toBe('0');
+  });
+
+  it('is written by iconToSvg', () => {
+    const a = setElementValues(createAnimation(prepared(), { id: 'a', name: 'a' }), 'A', 'el-1', {
+      draw: { end: 0.5 },
+    });
+    const svg = iconToSvg(a.viewBox, a.elements, a.states[0]!.elements);
+    expect(svg).toContain('pathLength="1" stroke-dasharray="0.5 2" stroke-dashoffset="0"');
   });
 });

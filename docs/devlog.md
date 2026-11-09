@@ -41,3 +41,12 @@
   clamped against overshoot. Editor inspector and `/runtime` playground expose springs,
   loop/appear and repeat + rest. 67 runtime tests, 3.89 KB min+gzip. Decision 007. Next: M3
   part 2, element transforms with pivot, opacity and draw in the editor.
+- **2026-11-10** — M3 part 2: element transforms, pivot, opacity and draw in the editor.
+  Core edits `setElementValues`, `setPivot` (one pivot per element, all states),
+  `resetElementValues`, `pivotPresets` (3 × 3 box grid) and `paintAttributes` (draw/opacity
+  attributes, tested identical to the runtime's and used by `iconToSvg`). Canvas: drag an
+  element to move it, drag the pivot cross (grabbed by its ring, so a point under it stays
+  reachable), arrow keys nudge the element, dashed outline for faded or undrawn elements,
+  opacity and draw painted live. Inspector: move, rotate, scale, pivot, opacity and draw
+  sliders, reset. 133 core + 68 runtime tests, runtime unchanged at 3.89 KB. Decision 008.
+  Next: M3 part 3 (sequences and pattern templates, per-element delay/stagger).

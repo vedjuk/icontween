@@ -6,8 +6,16 @@
  * None of these change structure (rule 1): states are cloned whole, and point edits only
  * change numbers.
  */
+import { segmentsBounds } from './geometry';
 import type { PreparedIcon } from './prepare';
-import type { Animation, ElementState, Segment, State, Transition } from './schema';
+import type {
+  Animation,
+  ElementState,
+  ElementTransform,
+  Segment,
+  State,
+  Transition,
+} from './schema';
 
 /** A fresh one-state animation from a prepared icon. The icon itself is not modified. */
 export function createAnimation(
@@ -226,4 +234,119 @@ export function movePoint(
   moved.x = x;
   moved.y = y;
   return out;
+}
+
+export interface ElementValuesPatch {
+  /** Translate, rotate and scale. The pivot is shared by all states: use `setPivot()`. */
+  transform?: Partial<Omit<ElementTransform, 'originX' | 'originY'>>;
+  opacity?: number;
+  draw?: Partial<ElementState['draw']>;
+}
+
+const clampTo = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
+
+/**
+ * Changes one element's transform, opacity and/or draw in one state. Values are rounded to
+ * 3 decimals; opacity and draw are clamped to 0..1, and a draw start or end that would
+ * cross the other stops at it. Non-finite numbers are ignored.
+ */
+export function setElementValues(
+  animation: Animation,
+  stateId: string,
+  elementId: string,
+  patch: ElementValuesPatch,
+): Animation {
+  return updateElement(animation, stateId, elementId, (es) => {
+    const transform = { ...es.transform };
+    for (const [key, value] of Object.entries(patch.transform ?? {})) {
+      if (key === 'originX' || key === 'originY') continue;
+      if (Number.isFinite(value)) transform[key as keyof ElementTransform] = round(value);
+    }
+    let opacity = es.opacity;
+    if (patch.opacity !== undefined && Number.isFinite(patch.opacity)) {
+      opacity = round(clampTo(patch.opacity, 0, 1));
+    }
+    let { start, end } = es.draw;
+    const s = patch.draw?.start;
+    const e = patch.draw?.end;
+    if (e !== undefined && Number.isFinite(e)) end = round(clampTo(e, 0, 1));
+    if (s !== undefined && Number.isFinite(s)) start = round(clampTo(s, 0, 1));
+    if (start > end) {
+      // The value being edited stops at the other one.
+      if (s !== undefined && Number.isFinite(s)) start = end;
+      else end = start;
+    }
+    return { ...es, transform, opacity, draw: { start, end } };
+  });
+}
+
+/**
+ * Sets an element's pivot (rotate/scale origin, in viewBox coordinates) in every state.
+ * One pivot per element: interpolating the pivot between states would make rotations
+ * wobble. States that already rotate or scale will turn around the new pivot.
+ */
+export function setPivot(animation: Animation, elementId: string, x: number, y: number): Animation {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return animation;
+  let result = animation;
+  for (const state of animation.states) {
+    result = updateElement(result, state.id, elementId, (es) => ({
+      ...es,
+      transform: { ...es.transform, originX: round(x), originY: round(y) },
+    }));
+  }
+  return result;
+}
+
+/** Resets an element's transform (keeping the pivot), opacity and draw in one state. */
+export function resetElementValues(
+  animation: Animation,
+  stateId: string,
+  elementId: string,
+): Animation {
+  return updateElement(animation, stateId, elementId, (es) => ({
+    ...es,
+    transform: { ...es.transform, translateX: 0, translateY: 0, rotate: 0, scale: 1 },
+    opacity: 1,
+    draw: { start: 0, end: 1 },
+  }));
+}
+
+/** Where a pivot can snap to: the 3 × 3 grid of an element's bounding box in state A. */
+export function pivotPresets(
+  animation: Animation,
+  elementId: string,
+): { col: number; row: number; x: number; y: number }[] {
+  const segments = animation.states[0]?.elements[elementId]?.segments;
+  const b = segments && segmentsBounds(segments);
+  if (!b) return [];
+  const out = [];
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      out.push({
+        col,
+        row,
+        x: round(b.minX + ((b.maxX - b.minX) * col) / 2),
+        y: round(b.minY + ((b.maxY - b.minY) * row) / 2),
+      });
+    }
+  }
+  return out;
+}
+
+function updateElement(
+  animation: Animation,
+  stateId: string,
+  elementId: string,
+  update: (es: ElementState) => ElementState,
+): Animation {
+  let found = false;
+  const states = animation.states.map((state) => {
+    if (state.id !== stateId) return state;
+    const es = state.elements[elementId];
+    if (!es) throw new Error(`State ${stateId} has no element "${elementId}"`);
+    found = true;
+    return { ...state, elements: { ...state.elements, [elementId]: update(es) } };
+  });
+  if (!found) throw new Error(`Unknown state "${stateId}"`);
+  return { ...animation, states };
 }

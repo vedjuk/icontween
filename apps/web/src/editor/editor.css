@@ -60,6 +60,10 @@
   color: var(--accent);
 }
 
+.canvas-selected .canvas-hit {
+  cursor: move;
+}
+
 .canvas-hit {
   fill: transparent;
   stroke: transparent;
@@ -94,6 +98,35 @@
 
 .canvas-node:active {
   cursor: grabbing;
+}
+
+.canvas-guide {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1px;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.canvas-pivot {
+  cursor: move;
+}
+
+.canvas-pivot circle,
+.canvas-pivot line {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 1.25px;
+  vector-effect: non-scaling-stroke;
+}
+
+.canvas-pivot .canvas-pivot-hit {
+  fill: none;
+  stroke: transparent;
+  vector-effect: none;
+  pointer-events: stroke;
 }
 
 /* State strip */
@@ -168,6 +201,7 @@
 }
 
 .field-inline span {
+  white-space: nowrap;
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 600;
@@ -175,6 +209,76 @@
 
 .field-inline input {
   width: 100%;
+}
+
+/* Pivot presets and sliders */
+
+.pivot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pivot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1rem);
+  gap: 0.25rem;
+  padding: 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.pivot-grid button {
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.pivot-grid button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.pivot-grid button:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 1px;
+}
+
+.pivot-xy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  flex: 1;
+}
+
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.range-row input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.range-row input[type='number'] {
+  width: 4rem;
+}
+
+.range-unit {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.inspector .button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* Preview */

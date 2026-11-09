@@ -2,9 +2,10 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { prepareSvg, segmentsToD, transformAttribute } from '@icontween/core';
+import { paintAttributes, prepareSvg, segmentsToD, transformAttribute } from '@icontween/core';
 import { describe, expect, it } from 'vitest';
 import { createPlayer, ELEMENT_ATTRIBUTE, toD, toTransform } from '../src';
+import { renderPath } from '../src/render';
 import { elementState, line, makeSvg, testAnimation } from './helpers';
 
 const SOURCES = join(dirname(fileURLToPath(import.meta.url)), '../../../examples/source');
@@ -41,6 +42,30 @@ describe('toD / toTransform match core', () => {
       const base = elementState(line(0, 0, 1, 1));
       const es = { ...base, transform: { ...base.transform, ...t } };
       expect(toTransform(es)).toBe(transformAttribute(es));
+    }
+  });
+});
+
+describe('opacity and draw match core', () => {
+  it('writes the same attributes as paintAttributes()', () => {
+    const cases = [
+      {},
+      { opacity: 0.5 },
+      { opacity: 0 },
+      { draw: { start: 0, end: 0.25 } },
+      { draw: { start: 0.3, end: 0.3 } },
+      { draw: { start: 0.125, end: 1 }, opacity: 0.8 },
+      { draw: { start: -0.2, end: 1.3 }, opacity: 1.2 },
+    ];
+    for (const extra of cases) {
+      const es = elementState(line(0, 0, 1, 1), extra);
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      renderPath({ el, last: {} }, es);
+      const paint = paintAttributes(es);
+      expect(el.getAttribute('opacity') ?? undefined).toBe(paint.opacity);
+      expect(el.getAttribute('pathLength') ?? undefined).toBe(paint.pathLength);
+      expect(el.getAttribute('stroke-dasharray') ?? undefined).toBe(paint.strokeDasharray);
+      expect(el.getAttribute('stroke-dashoffset') ?? undefined).toBe(paint.strokeDashoffset);
     }
   });
 });

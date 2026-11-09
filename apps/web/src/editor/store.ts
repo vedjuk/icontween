@@ -7,9 +7,13 @@ import {
   createAnimation,
   movePoint as movePointIn,
   prepareSvg,
+  resetElementValues,
   setElementSegments,
+  setElementValues,
+  setPivot as setPivotIn,
   validateAnimation,
   type Animation,
+  type ElementValuesPatch,
   type PointRef,
   type Sequence,
   type Transition,
@@ -37,6 +41,12 @@ interface EditorState {
   selectPoint(point: PointRef | null): void;
   /** Moves a point of the selected element in the edited state. */
   movePoint(point: PointRef, x: number, y: number): void;
+  /** Changes the selected element's transform, opacity or draw in the edited state. */
+  setValues(patch: ElementValuesPatch): void;
+  /** Resets the selected element's transform, opacity and draw in the edited state. */
+  resetValues(): void;
+  /** Moves the selected element's pivot, in every state. */
+  setPivot(x: number, y: number): void;
   /** Updates the transition into the edited state. */
   setTransition(patch: Partial<Transition>): void;
   setTrigger(type: TriggerType): void;
@@ -98,6 +108,24 @@ export const useEditor = create<EditorState>()((set, get) => ({
     if (!segments) return;
     const moved = movePointIn(segments, point, x, y);
     set({ animation: checked(setElementSegments(animation, stateId, elementId, moved)) });
+  },
+
+  setValues(patch) {
+    const { animation, stateId, elementId } = get();
+    if (!animation || !elementId) return;
+    set({ animation: checked(setElementValues(animation, stateId, elementId, patch)) });
+  },
+
+  resetValues() {
+    const { animation, stateId, elementId } = get();
+    if (!animation || !elementId) return;
+    set({ animation: checked(resetElementValues(animation, stateId, elementId)) });
+  },
+
+  setPivot(x, y) {
+    const { animation, elementId } = get();
+    if (!animation || !elementId) return;
+    set({ animation: checked(setPivotIn(animation, elementId, x, y)) });
   },
 
   setTransition(patch) {
