@@ -95,7 +95,10 @@ const UNSUPPORTED_FEATURES = new Set([
 
 const SHAPES = new Set(['path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon']);
 
-export function prepareSvg(source: string, options: PrepareOptions = {}): PrepareResult {
+type ParsedRoot = { ok: true; root: Element } | { ok: false; error: string };
+
+/** Size and entity checks, then DOMParser. Shared by prepareSvg() and sanitizeSvg(). */
+function parseSvgRoot(source: string, options: PrepareOptions): ParsedRoot {
   if (source.length > MAX_SVG_BYTES) {
     return { ok: false, error: 'This file is too large to be an icon (over 1 MB).' };
   }
@@ -104,8 +107,9 @@ export function prepareSvg(source: string, options: PrepareOptions = {}): Prepar
   }
 
   const Parser = options.domParser ?? (typeof DOMParser !== 'undefined' ? new DOMParser() : null);
-  if (!Parser)
-    throw new Error('prepareSvg needs a DOMParser (pass options.domParser outside browsers)');
+  if (!Parser) {
+    throw new Error('IconTween needs a DOMParser (pass options.domParser outside browsers)');
+  }
 
   const doc = Parser.parseFromString(source, 'image/svg+xml');
   if (doc.getElementsByTagName('parsererror').length > 0) {
@@ -115,6 +119,51 @@ export function prepareSvg(source: string, options: PrepareOptions = {}): Prepar
   if (!root || root.localName !== 'svg') {
     return { ok: false, error: 'The file needs an <svg> root element.' };
   }
+  return { ok: true, root };
+}
+
+export type SanitizeResult =
+  | { ok: true; svg: string; viewBox: ViewBox; removed: RemovedItem[] }
+  | { ok: false; error: string };
+
+/**
+ * Sanitizes an SVG for display as-is (rule 6): same checks and allowlist as
+ * prepareSvg(), no geometry changes. The output always has the SVG namespace and a
+ * viewBox, so it also works as an image (e.g. a data: URL). The input is untouched.
+ */
+export function sanitizeSvg(source: string, options: PrepareOptions = {}): SanitizeResult {
+  const parsed = parseSvgRoot(source, options);
+  if (!parsed.ok) return parsed;
+  const { root } = parsed;
+  const { removed } = sanitizeElement(root);
+  const viewBox = readViewBox(root);
+  if (!viewBox) {
+    return { ok: false, error: 'The SVG needs a viewBox (or a width and height) to place it.' };
+  }
+
+  const skip = new Set(['xmlns', 'viewBox', 'width', 'height', 'class', 'id']);
+  const attrs = [...root.attributes]
+    .filter((a) => !skip.has(a.name))
+    .map((a) => ` ${a.name}="${escapeAttribute(a.value)}"`)
+    .join('');
+  const serializer = new XMLSerializer();
+  const children = [...root.childNodes].map((n) => serializer.serializeToString(n)).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.join(' ')}"${attrs}>${children}</svg>`;
+  return { ok: true, svg, viewBox, removed };
+}
+
+export function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+export function prepareSvg(source: string, options: PrepareOptions = {}): PrepareResult {
+  const parsed = parseSvgRoot(source, options);
+  if (!parsed.ok) return parsed;
+  const { root } = parsed;
 
   const report: PrepareReport = {
     shapesConverted: {},

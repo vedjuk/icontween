@@ -8,7 +8,7 @@ const CHECK: Segment[] = [
   { cmd: 'L', x: 20, y: 6 },
 ];
 
-export function App() {
+export function Landing() {
   return (
     <main className="placeholder">
       <svg
@@ -31,7 +31,10 @@ export function App() {
       <p className="note">
         A browser-based tool for crafting purposeful animations for SVG icons. In the workshop.
       </p>
-      <a className="link" href="https://github.com/vedjuk/icontween">
+      <a className="link" href="/prepare">
+        Try the prepare step
+      </a>
+      <a className="link link-quiet" href="https://github.com/vedjuk/icontween">
         Follow along on GitHub
       </a>
     </main>

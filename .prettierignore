@@ -3,3 +3,4 @@ coverage
 pnpm-lock.yaml
 PROJECT_BRIEF.md
 CLAUDE.md
+examples/source
