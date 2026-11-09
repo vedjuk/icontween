@@ -8,14 +8,8 @@
  */
 import { segmentsBounds } from './geometry';
 import type { PreparedIcon } from './prepare';
-import type {
-  Animation,
-  ElementState,
-  ElementTransform,
-  Segment,
-  State,
-  Transition,
-} from './schema';
+import { pathWithNewState, setSequencePath } from './sequence';
+import type { Animation, ElementState, ElementTransform, Segment, State } from './schema';
 
 /** A fresh one-state animation from a prepared icon. The icon itself is not modified. */
 export function createAnimation(
@@ -44,14 +38,11 @@ export function nextStateId(states: readonly State[]): string {
   }
 }
 
-/** The default transition into a newly added state. Tuned per purpose in M3. */
-export function defaultTransition(from: string, to: string): Transition {
-  return { from, to, duration: { token: 'base' }, easing: { type: 'token', name: 'standard' } };
-}
-
 /**
- * Adds a copy of state `fromId` as a new last state, and a step into it from the current
- * last state of the sequence. Returns the new animation and the new state's id.
+ * Adds a copy of state `fromId` as a new last state and puts it in the sequence: a
+ * sequence that follows a pattern template keeps following it, one that returns to the
+ * start gets the new state before the return, anything else gets it at the end (see
+ * `pathWithNewState()`). Returns the new animation and the new state's id.
  */
 export function addStateCopy(
   animation: Animation,
@@ -60,16 +51,9 @@ export function addStateCopy(
   const source = animation.states.find((s) => s.id === fromId);
   if (!source) throw new Error(`Unknown state "${fromId}"`);
   const stateId = nextStateId(animation.states);
-  const steps = animation.sequence.steps;
-  const lastId = steps.length ? steps[steps.length - 1]!.to : animation.states[0]!.id;
-  return {
-    stateId,
-    animation: {
-      ...animation,
-      states: [...animation.states, cloneState(source, stateId)],
-      sequence: { ...animation.sequence, steps: [...steps, defaultTransition(lastId, stateId)] },
-    },
-  };
+  const path = pathWithNewState(animation, stateId);
+  const withState = { ...animation, states: [...animation.states, cloneState(source, stateId)] };
+  return { stateId, animation: setSequencePath(withState, path) };
 }
 
 function cloneState(state: State, id: string): State {

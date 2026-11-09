@@ -4,19 +4,24 @@
  */
 import {
   addStateCopy,
+  applyPattern,
   createAnimation,
   movePoint as movePointIn,
   prepareSvg,
   resetElementValues,
+  setElementDelay,
   setElementSegments,
   setElementValues,
   setPivot as setPivotIn,
+  setSequencePath,
+  setStepTiming,
   validateAnimation,
   type Animation,
   type ElementValuesPatch,
+  type PatternId,
   type PointRef,
   type Sequence,
-  type Transition,
+  type StepTimingPatch,
   type TriggerType,
 } from '@icontween/core';
 import { create } from 'zustand';
@@ -28,6 +33,8 @@ interface EditorState {
   error: string | null;
   /** The state being edited. */
   stateId: string;
+  /** The selected step of the sequence (its transition is shown in the inspector). */
+  stepIndex: number;
   elementId: string | null;
   point: PointRef | null;
   snap: boolean;
@@ -36,7 +43,10 @@ interface EditorState {
   open(source: SourceIcon): void;
   /** Adds a copy of the last state and starts editing it. */
   addState(): void;
+  /** Edits a state, and selects the first step into it if there is one. */
   selectState(id: string): void;
+  /** Selects a step and edits the state it goes to. */
+  selectStep(index: number): void;
   selectElement(id: string | null): void;
   selectPoint(point: PointRef | null): void;
   /** Moves a point of the selected element in the edited state. */
@@ -47,8 +57,13 @@ interface EditorState {
   resetValues(): void;
   /** Moves the selected element's pivot, in every state. */
   setPivot(x: number, y: number): void;
-  /** Updates the transition into the edited state. */
-  setTransition(patch: Partial<Transition>): void;
+  /** Rebuilds the sequence along a path of state ids (see core's `setSequencePath`). */
+  setPath(path: string[]): void;
+  applyPattern(id: PatternId): void;
+  /** Duration, easing or stagger of the selected step. */
+  setStepTiming(patch: StepTimingPatch): void;
+  /** One element's delay in the selected step. */
+  setDelay(elementId: string, ms: number): void;
   setTrigger(type: TriggerType): void;
   setRepeat(repeat: Sequence['repeat'], restBetweenLoops?: number): void;
   setSnap(snap: boolean): void;
@@ -69,6 +84,7 @@ export const useEditor = create<EditorState>()((set, get) => ({
   animation: null,
   error: null,
   stateId: 'A',
+  stepIndex: 0,
   elementId: null,
   point: null,
   snap: true,
@@ -83,6 +99,7 @@ export const useEditor = create<EditorState>()((set, get) => ({
         : null,
       error: result.ok ? null : result.error,
       stateId: 'A',
+      stepIndex: 0,
       elementId: null,
       point: null,
     });
@@ -93,10 +110,31 @@ export const useEditor = create<EditorState>()((set, get) => ({
     if (!animation) return;
     const last = animation.states[animation.states.length - 1]!;
     const next = addStateCopy(animation, last.id);
-    set({ animation: checked(next.animation), stateId: next.stateId, point: null });
+    const steps = next.animation.sequence.steps;
+    set({
+      animation: checked(next.animation),
+      stateId: next.stateId,
+      stepIndex: Math.max(
+        0,
+        steps.findIndex((s) => s.to === next.stateId),
+      ),
+      point: null,
+    });
   },
 
-  selectState: (stateId) => set({ stateId, point: null }),
+  selectState(stateId) {
+    const { animation, stepIndex } = get();
+    const steps = animation?.sequence.steps ?? [];
+    // Keep the selected step if it already goes there (B in A→B→A→B).
+    const into =
+      steps[stepIndex]?.to === stateId ? stepIndex : steps.findIndex((s) => s.to === stateId);
+    set({ stateId, point: null, ...(into !== -1 && { stepIndex: into }) });
+  },
+
+  selectStep(stepIndex) {
+    const step = get().animation?.sequence.steps[stepIndex];
+    if (step) set({ stepIndex, stateId: step.to, point: null });
+  },
   selectElement: (elementId) => set({ elementId, point: null }),
   selectPoint: (point) => set({ point }),
 
@@ -128,11 +166,28 @@ export const useEditor = create<EditorState>()((set, get) => ({
     set({ animation: checked(setPivotIn(animation, elementId, x, y)) });
   },
 
-  setTransition(patch) {
-    const { animation, stateId } = get();
-    if (!animation) return;
-    const steps = animation.sequence.steps.map((s) => (s.to === stateId ? { ...s, ...patch } : s));
-    set({ animation: checked({ ...animation, sequence: { ...animation.sequence, steps } }) });
+  setPath(path) {
+    const { animation, stepIndex } = get();
+    if (animation) set(withSequence(setSequencePath(animation, path), stepIndex));
+  },
+
+  applyPattern(id) {
+    const { animation, stepIndex } = get();
+    if (animation) set(withSequence(applyPattern(animation, id), stepIndex));
+  },
+
+  setStepTiming(patch) {
+    const { animation, stepIndex } = get();
+    if (animation?.sequence.steps[stepIndex]) {
+      set({ animation: checked(setStepTiming(animation, stepIndex, patch)) });
+    }
+  },
+
+  setDelay(elementId, ms) {
+    const { animation, stepIndex } = get();
+    if (animation?.sequence.steps[stepIndex]) {
+      set({ animation: checked(setElementDelay(animation, stepIndex, elementId, ms)) });
+    }
   },
 
   setTrigger(type) {
@@ -152,3 +207,9 @@ export const useEditor = create<EditorState>()((set, get) => ({
   setSnap: (snap) => set({ snap }),
   setOnion: (onion) => set({ onion }),
 }));
+
+/** After the sequence changed: keeps the selected step in range. */
+function withSequence(animation: Animation, stepIndex: number) {
+  const last = Math.max(0, animation.sequence.steps.length - 1);
+  return { animation: checked(animation), stepIndex: Math.min(stepIndex, last) };
+}

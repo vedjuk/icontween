@@ -1,4 +1,4 @@
-import { nextStateId } from '@icontween/core';
+import { matchPattern, nextStateId, patternTemplates, sequencePath } from '@icontween/core';
 import { useEffect } from 'react';
 import { Library } from '../library/Library';
 import { useLibrary } from '../library/useLibrary';
@@ -68,6 +68,7 @@ export function EditorPage() {
             <h1 className="editor-title">{animation.name}</h1>
             <Canvas />
             <StateStrip />
+            <SequenceStrip />
           </main>
           <Inspector />
         </>
@@ -114,6 +115,91 @@ function StateStrip() {
       {animation.states.length === 1 && (
         <p className="hint">
           State A is the prepared icon. Clone it, then drag points in the new state.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Triggers that play the sequence back by themselves (on leave, on the second click). */
+const REVERSING = new Set(['hover', 'toggle']);
+
+/** The sequence as steps, pattern templates, and adding or removing a step at the end. */
+function SequenceStrip() {
+  const animation = useEditor((s) => s.animation)!;
+  const stepIndex = useEditor((s) => s.stepIndex);
+  const { selectStep, setPath, applyPattern } = useEditor.getState();
+  const steps = animation.sequence.steps;
+  if (animation.states.length < 2) return null;
+
+  const path = sequencePath(animation);
+  const templates = patternTemplates(animation.states.map((s) => s.id));
+  const pattern = matchPattern(animation);
+  const last = path[path.length - 1]!;
+  // A new step goes back to the start, or on to B when already there.
+  const nextTarget = last === path[0] ? animation.states[1]!.id : path[0]!;
+  const returns = path.length > 2 && last === path[0];
+
+  return (
+    <div className="sequence-strip" role="group" aria-label="Sequence">
+      <div className="sequence-row">
+        <span className="sequence-label">Sequence</span>
+        <ol className="sequence-steps">
+          {steps.map((step, i) => (
+            <li key={i}>
+              <button
+                type="button"
+                className="sequence-step"
+                aria-pressed={i === stepIndex}
+                aria-label={`Step ${i + 1}: ${step.from} to ${step.to}`}
+                onClick={() => selectStep(i)}
+              >
+                {step.from} → {step.to}
+              </button>
+            </li>
+          ))}
+        </ol>
+        <button
+          type="button"
+          className="button"
+          onClick={() => setPath([...path, nextTarget])}
+          title={`Add a step ${last} → ${nextTarget}`}
+        >
+          + Step
+        </button>
+        <button
+          type="button"
+          className="button"
+          disabled={steps.length === 0}
+          onClick={() => setPath(path.slice(0, -1))}
+          title="Remove the last step"
+        >
+          − Step
+        </button>
+      </div>
+      <div className="sequence-row">
+        <span className="sequence-label">Pattern</span>
+        <div className="segmented">
+          {templates.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              aria-pressed={pattern?.id === t.id}
+              title={`${t.path.join(' → ')}: ${t.hint}`}
+              onClick={() => applyPattern(t.id)}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
+        <span className="hint">{pattern ? pattern.hint : 'Custom'}</span>
+      </div>
+      {returns && REVERSING.has(animation.trigger.type) && (
+        <p className="hint">
+          {animation.trigger.type === 'hover'
+            ? 'Hover plays the sequence backwards on leave'
+            : 'Toggle plays the sequence backwards on the second click'}
+          , so a sequence that returns moves twice. Hold usually fits better.
         </p>
       )}
     </div>

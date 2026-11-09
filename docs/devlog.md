@@ -50,3 +50,13 @@
   opacity and draw painted live. Inspector: move, rotate, scale, pivot, opacity and draw
   sliders, reset. 133 core + 68 runtime tests, runtime unchanged at 3.89 KB. Decision 008.
   Next: M3 part 3 (sequences and pattern templates, per-element delay/stagger).
+- **2026-11-10** — M3 part 3: sequences and pattern templates, per-element delay/stagger.
+  Core `sequence.ts`: `setSequencePath()` (rebuilds steps from a path of state ids, keeping
+  timing that still applies), `patternTemplates()` (Hold, Return, Return ×2, Back and forth),
+  `matchPattern`, `applyPattern`, `setStepTiming`, `setElementDelay`, `elementOffsets`; new
+  states follow the pattern (A→B→A + C → A→B→C→A); validation now requires one chain from A.
+  Editor: sequence strip with selectable steps, + / − step and pattern buttons; steps selected
+  by index (fixes editing B→A); onion skin from the step's source; step panel with "Goes
+  to", stagger and per-element delay rows with timing bars. 147 core + 68 runtime tests,
+  runtime unchanged. Decision 009. Next: M3 part 4 (purpose picker with defaults, motion
+  tokens, reduced-motion setting).

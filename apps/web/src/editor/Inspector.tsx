@@ -1,13 +1,15 @@
 import {
+  elementOffsets,
   getPoint,
   pivotPresets,
+  sequencePath,
   type Animation,
   type Easing,
   type Sequence,
   type Transition,
   type TriggerType,
 } from '@icontween/core';
-import { DEFAULT_TOKENS, resolveMotion } from '@icontween/runtime';
+import { DEFAULT_TOKENS, resolveDuration, resolveMotion } from '@icontween/runtime';
 import { Preview } from './Preview';
 import { useEditor } from './store';
 
@@ -59,16 +61,17 @@ const easingId = (e: Easing) =>
 export function Inspector() {
   const animation = useEditor((s) => s.animation)!;
   const stateId = useEditor((s) => s.stateId);
+  const stepIndex = useEditor((s) => s.stepIndex);
   const elementId = useEditor((s) => s.elementId);
   const point = useEditor((s) => s.point);
   const snap = useEditor((s) => s.snap);
   const onion = useEditor((s) => s.onion);
-  const { selectElement, movePoint, setTransition, setTrigger, setRepeat, setSnap, setOnion } =
+  const { selectElement, movePoint, setTrigger, setRepeat, setSnap, setOnion } =
     useEditor.getState();
   const { repeat, restBetweenLoops = 0 } = animation.sequence;
 
   const state = animation.states.find((s) => s.id === stateId)!;
-  const step = animation.sequence.steps.find((s) => s.to === stateId);
+  const step = animation.sequence.steps[stepIndex];
   const segments = elementId ? state.elements[elementId]?.segments : undefined;
   const at = point && segments ? getPoint(segments, point) : null;
 
@@ -122,36 +125,7 @@ export function Inspector() {
         </section>
       )}
 
-      {step && (
-        <section>
-          <h2 className="section-title">
-            Transition {step.from} → {step.to}
-          </h2>
-          {isSpring(step.easing) ? (
-            <p className="hint">
-              Springs set their own length: about{' '}
-              {Math.round(resolveMotion(step.easing, 0, DEFAULT_TOKENS).duration / 10) * 10} ms.
-            </p>
-          ) : (
-            <DurationField step={step} onChange={(duration) => setTransition({ duration })} />
-          )}
-          <label className="field">
-            <span>Easing</span>
-            <select
-              value={easingId(step.easing)}
-              onChange={(e) =>
-                setTransition({ easing: EASINGS.find((o) => o.id === e.target.value)!.easing })
-              }
-            >
-              {EASINGS.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
-      )}
+      {step && <StepTiming animation={animation} index={stepIndex} step={step} />}
 
       {animation.sequence.steps.length > 0 && (
         <section>
@@ -221,6 +195,128 @@ export function Inspector() {
         </label>
       </section>
     </aside>
+  );
+}
+
+/** Duration, easing, target, stagger and per-element delays of one step. */
+function StepTiming({
+  animation,
+  index,
+  step,
+}: {
+  animation: Animation;
+  index: number;
+  step: Transition;
+}) {
+  const { setStepTiming, setDelay, setPath, selectElement } = useEditor.getState();
+  const elementId = useEditor((s) => s.elementId);
+  const path = sequencePath(animation);
+  const motion = resolveMotion(
+    step.easing,
+    resolveDuration(step.duration, DEFAULT_TOKENS),
+    DEFAULT_TOKENS,
+  );
+  const offsets = elementOffsets(animation, index);
+  const total = Math.max(1, ...Object.values(offsets).map((o) => o + motion.duration));
+  const pct = (ms: number) => `${(ms / total) * 100}%`;
+
+  return (
+    <section>
+      <h2 className="section-title">
+        Step {index + 1} · {step.from} → {step.to}
+      </h2>
+      <label className="field">
+        <span>Goes to</span>
+        <select
+          value={step.to}
+          onChange={(e) => setPath(path.map((id, i) => (i === index + 1 ? e.target.value : id)))}
+        >
+          {animation.states.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label ?? s.id}
+              {s.id === step.from ? ' (hold)' : ''}
+            </option>
+          ))}
+        </select>
+      </label>
+      {isSpring(step.easing) ? (
+        <p className="hint">
+          Springs set their own length: about {Math.round(motion.duration / 10) * 10} ms.
+        </p>
+      ) : (
+        <DurationField step={step} onChange={(duration) => setStepTiming({ duration })} />
+      )}
+      <label className="field">
+        <span>Easing</span>
+        <select
+          value={easingId(step.easing)}
+          onChange={(e) =>
+            setStepTiming({ easing: EASINGS.find((o) => o.id === e.target.value)!.easing })
+          }
+        >
+          {EASINGS.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {animation.elements.length > 1 && (
+        <div className="field">
+          <span>Stagger</span>
+          <div className="duration">
+            <input
+              type="number"
+              min={0}
+              max={2000}
+              step={10}
+              value={step.stagger ?? 0}
+              aria-label="Stagger between elements in milliseconds"
+              onChange={(e) => setStepTiming({ stagger: e.target.valueAsNumber })}
+            />
+            <span className="hint">ms between elements, in list order</span>
+          </div>
+        </div>
+      )}
+
+      <div className="field">
+        <span>Delays</span>
+        <ul className="timing" aria-label="When each element moves">
+          {animation.elements.map((el) => {
+            const offset = offsets[el.id] ?? 0;
+            const name = el.name ?? el.id;
+            return (
+              <li key={el.id} aria-current={el.id === elementId ? 'true' : undefined}>
+                <button type="button" className="timing-name" onClick={() => selectElement(el.id)}>
+                  {name}
+                </button>
+                <span className="timing-track" aria-hidden="true">
+                  <span
+                    className="timing-bar"
+                    style={{ left: pct(offset), width: pct(motion.duration) }}
+                  />
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={5000}
+                  step={10}
+                  value={step.delays?.[el.id] ?? 0}
+                  aria-label={`Delay of ${name} in milliseconds`}
+                  title={`Starts at ${offset} ms`}
+                  onChange={(e) => setDelay(el.id, e.target.valueAsNumber)}
+                />
+              </li>
+            );
+          })}
+        </ul>
+        <p className="hint">
+          Delay in ms, on top of the stagger. {Math.round(total)} ms in all. Played backwards, the
+          last to leave is the first to return.
+        </p>
+      </div>
+    </section>
   );
 }
 

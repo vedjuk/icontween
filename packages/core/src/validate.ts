@@ -114,6 +114,14 @@ export function validateAnimation(animation: Animation): ValidationResult {
     const p = `sequence.steps[${i}]`;
     if (!stateIds.has(step.from)) issue(`${p}.from`, `Unknown state "${step.from}"`);
     if (!stateIds.has(step.to)) issue(`${p}.to`, `Unknown state "${step.to}"`);
+    // Steps form one chain from state A, so the runtime can play it forwards and back.
+    const expected = i === 0 ? animation.states[0]?.id : animation.sequence.steps[i - 1]!.to;
+    if (stateIds.has(step.from) && step.from !== expected) {
+      issue(
+        `${p}.from`,
+        i === 0 ? 'The sequence must start at state A' : `Must continue from "${expected}"`,
+      );
+    }
     if (typeof step.duration === 'number') {
       if (!isFiniteNumber(step.duration) || step.duration < 0) {
         issue(`${p}.duration`, 'Must be a non-negative number of milliseconds');

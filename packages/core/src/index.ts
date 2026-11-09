@@ -5,3 +5,4 @@ export * from './geometry';
 export * from './prepare';
 export * from './render';
 export * from './edit';
+export * from './sequence';

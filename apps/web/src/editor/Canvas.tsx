@@ -32,6 +32,7 @@ export function Canvas() {
   const point = useEditor((s) => s.point);
   const snap = useEditor((s) => s.snap);
   const onion = useEditor((s) => s.onion);
+  const stepIndex = useEditor((s) => s.stepIndex);
   const { selectElement, selectPoint, movePoint, setValues, setPivot } = useEditor.getState();
 
   const [minX, minY, w, h] = animation.viewBox;
@@ -42,7 +43,15 @@ export function Canvas() {
 
   const index = animation.states.findIndex((s) => s.id === stateId);
   const state = animation.states[index] ?? animation.states[0]!;
-  const previous: State | undefined = index > 0 ? animation.states[index - 1] : undefined;
+  // Onion skin: where the selected step comes from when it goes to this state (B in B → A),
+  // otherwise the state before this one in the strip.
+  const step = animation.sequence.steps[stepIndex];
+  const previous: State | undefined =
+    step?.to === state.id && step.from !== state.id
+      ? animation.states.find((s) => s.id === step.from)
+      : index > 0
+        ? animation.states[index - 1]
+        : undefined;
   const selected = elementId ? state.elements[elementId] : undefined;
 
   const svgRef = useRef<SVGSVGElement>(null);

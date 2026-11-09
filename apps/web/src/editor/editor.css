@@ -144,6 +144,69 @@
   font-weight: 600;
 }
 
+/* Sequence strip */
+
+.sequence-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sequence-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.sequence-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sequence-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sequence-step {
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0.3125rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.sequence-step:hover {
+  border-color: var(--muted);
+}
+
+.sequence-step[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.sequence-step:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 1px;
+}
+
+.sequence-strip .button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Inspector */
 
 .inspector {
@@ -305,4 +368,64 @@
 .preview-target:focus-visible {
   outline: 2px solid var(--accent-text);
   outline-offset: 2px;
+}
+
+/* Step timing: one row per element, with a bar for when it moves */
+
+.timing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timing li {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr 4rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.timing-name {
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timing li[aria-current='true'] .timing-name {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.timing-track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--grid);
+}
+
+.timing-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+.timing li[aria-current='true'] .timing-bar {
+  background: var(--accent);
+}
+
+.inspector .timing input[type='number'] {
+  width: 100%;
 }
