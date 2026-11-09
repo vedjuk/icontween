@@ -14,9 +14,15 @@ const EASINGS: { id: string; label: string; easing: Easing }[] = [
     easing: { type: 'cubic-bezier', x1: 0.42, y1: 0, x2: 0.58, y2: 1 },
   },
   { id: 'linear', label: 'linear', easing: { type: 'cubic-bezier', x1: 0, y1: 0, x2: 1, y2: 1 } },
+  ...['spring-gentle', 'spring-snappy', 'spring-bouncy'].map((name) => ({
+    id: name,
+    label: `${name} (sets its own duration)`,
+    easing: { type: 'token', name } as Easing,
+  })),
 ];
 
-const TRIGGERS: TriggerType[] = ['hover', 'toggle', 'click', 'manual'];
+const TRIGGERS: TriggerType[] = ['hover', 'toggle', 'click', 'loop', 'appear', 'manual'];
+const REPEATS = ['once', 'loop', 'ping-pong'] as const;
 const PREFERENCES: ReducedMotionPreference[] = ['auto', 'no-preference', 'reduce'];
 const RM_MODES = ['instant', 'fade', 'none'] as const;
 
@@ -31,6 +37,8 @@ export function RuntimePage() {
   const [easingId, setEasingId] = useState('standard');
   const [preference, setPreference] = useState<ReducedMotionPreference>('auto');
   const [rmMode, setRmMode] = useState<(typeof RM_MODES)[number]>('instant');
+  const [repeat, setRepeat] = useState<(typeof REPEATS)[number]>('once');
+  const [rest, setRest] = useState(400);
 
   const demo = DEMOS.find((d) => d.id === demoId) ?? DEMOS[0]!;
   const animation = useMemo<Animation>(() => {
@@ -38,11 +46,15 @@ export function RuntimePage() {
     const easing = EASINGS.find((e) => e.id === easingId)!.easing;
     return {
       ...demo.animation,
-      sequence: { ...demo.animation.sequence, steps: [{ ...step, duration, easing }] },
+      sequence: {
+        steps: [{ ...step, duration, easing }],
+        repeat,
+        restBetweenLoops: rest,
+      },
       trigger: { type: trigger },
       reducedMotion: { mode: rmMode },
     };
-  }, [demo, duration, easingId, trigger, rmMode]);
+  }, [demo, duration, easingId, trigger, rmMode, repeat, rest]);
 
   return (
     <div className="runtime">
@@ -52,7 +64,7 @@ export function RuntimePage() {
           <span className="wordmark-tween">tween</span>
         </a>
         <span className="prepare-step">Runtime playground</span>
-        <span className="prepare-privacy">Hand-built demos. The editor arrives in M2 part 2.</span>
+        <span className="prepare-privacy">Hand-built demos for judging timing by hand.</span>
       </header>
 
       <main className="runtime-main">
@@ -88,6 +100,23 @@ export function RuntimePage() {
             options={EASINGS.map((e) => [e.id, e.label])}
             onChange={setEasingId}
           />
+          <Choice
+            label="Repeat"
+            value={repeat}
+            options={REPEATS.map((r) => [r, r])}
+            onChange={(v) => setRepeat(v as (typeof REPEATS)[number])}
+          />
+          <label className="field">
+            <span className="section-title">Rest between loops {rest} ms</span>
+            <input
+              type="range"
+              min={0}
+              max={2000}
+              step={50}
+              value={rest}
+              onChange={(e) => setRest(Number(e.target.value))}
+            />
+          </label>
           <Choice
             label="Reduced motion (preview)"
             value={preference}
@@ -144,7 +173,11 @@ function Stage({
           ? 'Hover or focus the tile. Move in and out quickly to test interruption.'
           : animation.trigger.type === 'manual'
             ? 'Use the buttons below.'
-            : 'Click the tile.'}
+            : animation.trigger.type === 'loop'
+              ? 'Plays on its own while on screen.'
+              : animation.trigger.type === 'appear'
+                ? 'Played once on appearing. Change a setting to replay.'
+                : 'Click the tile.'}
       </p>
       <div className="segmented" role="group" aria-label="Playback">
         <button type="button" onClick={() => players.current.forEach((p) => p.play())}>

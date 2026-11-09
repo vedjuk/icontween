@@ -11,6 +11,7 @@ import {
   validateAnimation,
   type Animation,
   type PointRef,
+  type Sequence,
   type Transition,
   type TriggerType,
 } from '@icontween/core';
@@ -39,6 +40,7 @@ interface EditorState {
   /** Updates the transition into the edited state. */
   setTransition(patch: Partial<Transition>): void;
   setTrigger(type: TriggerType): void;
+  setRepeat(repeat: Sequence['repeat'], restBetweenLoops?: number): void;
   setSnap(snap: boolean): void;
   setOnion(onion: boolean): void;
 }
@@ -108,6 +110,15 @@ export const useEditor = create<EditorState>()((set, get) => ({
   setTrigger(type) {
     const { animation } = get();
     if (animation) set({ animation: { ...animation, trigger: { type } } });
+  },
+
+  setRepeat(repeat, restBetweenLoops) {
+    const { animation } = get();
+    if (!animation) return;
+    const sequence: Sequence = { ...animation.sequence, repeat };
+    if (repeat === 'once' || !restBetweenLoops) delete sequence.restBetweenLoops;
+    else sequence.restBetweenLoops = restBetweenLoops;
+    set({ animation: checked({ ...animation, sequence }) });
   },
 
   setSnap: (snap) => set({ snap }),

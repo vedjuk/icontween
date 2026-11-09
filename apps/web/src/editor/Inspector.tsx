@@ -1,5 +1,11 @@
-import { getPoint, type Easing, type Transition, type TriggerType } from '@icontween/core';
-import { DEFAULT_TOKENS } from '@icontween/runtime';
+import {
+  getPoint,
+  type Easing,
+  type Sequence,
+  type Transition,
+  type TriggerType,
+} from '@icontween/core';
+import { DEFAULT_TOKENS, resolveMotion } from '@icontween/runtime';
 import { Preview } from './Preview';
 import { useEditor } from './store';
 
@@ -14,13 +20,35 @@ const EASINGS: { id: string; label: string; easing: Easing }[] = [
     easing: { type: 'cubic-bezier', x1: 0.42, y1: 0, x2: 0.58, y2: 1 },
   },
   { id: 'linear', label: 'Linear', easing: { type: 'cubic-bezier', x1: 0, y1: 0, x2: 1, y2: 1 } },
+  {
+    id: 'spring-gentle',
+    label: 'Spring · gentle',
+    easing: { type: 'token', name: 'spring-gentle' },
+  },
+  {
+    id: 'spring-snappy',
+    label: 'Spring · snappy',
+    easing: { type: 'token', name: 'spring-snappy' },
+  },
+  {
+    id: 'spring-bouncy',
+    label: 'Spring · bouncy',
+    easing: { type: 'token', name: 'spring-bouncy' },
+  },
 ];
 
-/** Triggers the runtime supports so far (loop and appear arrive in M3). */
 const TRIGGERS: { id: TriggerType; label: string }[] = [
   { id: 'hover', label: 'Hover' },
   { id: 'click', label: 'Click' },
   { id: 'toggle', label: 'Toggle' },
+  { id: 'loop', label: 'Loop (while visible)' },
+  { id: 'appear', label: 'Appear (once, on screen)' },
+];
+
+const REPEATS: { id: Sequence['repeat']; label: string }[] = [
+  { id: 'once', label: 'Once' },
+  { id: 'loop', label: 'Loop' },
+  { id: 'ping-pong', label: 'Ping-pong' },
 ];
 
 const easingId = (e: Easing) =>
@@ -33,8 +61,9 @@ export function Inspector() {
   const point = useEditor((s) => s.point);
   const snap = useEditor((s) => s.snap);
   const onion = useEditor((s) => s.onion);
-  const { selectElement, movePoint, setTransition, setTrigger, setSnap, setOnion } =
+  const { selectElement, movePoint, setTransition, setTrigger, setRepeat, setSnap, setOnion } =
     useEditor.getState();
+  const { repeat, restBetweenLoops = 0 } = animation.sequence;
 
   const state = animation.states.find((s) => s.id === stateId)!;
   const step = animation.sequence.steps.find((s) => s.to === stateId);
@@ -92,7 +121,14 @@ export function Inspector() {
           <h2 className="section-title">
             Transition {step.from} → {step.to}
           </h2>
-          <DurationField step={step} onChange={(duration) => setTransition({ duration })} />
+          {isSpring(step.easing) ? (
+            <p className="hint">
+              Springs set their own length: about{' '}
+              {Math.round(resolveMotion(step.easing, 0, DEFAULT_TOKENS).duration / 10) * 10} ms.
+            </p>
+          ) : (
+            <DurationField step={step} onChange={(duration) => setTransition({ duration })} />
+          )}
           <label className="field">
             <span>Easing</span>
             <select
@@ -126,6 +162,44 @@ export function Inspector() {
               ))}
             </select>
           </label>
+          <div className="field">
+            <span>Repeat</span>
+            <div className="duration">
+              <select
+                value={repeat}
+                aria-label="Repeat"
+                onChange={(e) =>
+                  setRepeat(e.target.value as Sequence['repeat'], restBetweenLoops || 600)
+                }
+              >
+                {REPEATS.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+              {repeat !== 'once' && (
+                <input
+                  type="number"
+                  min={0}
+                  max={10000}
+                  step={50}
+                  value={restBetweenLoops}
+                  aria-label="Rest between loops in milliseconds"
+                  title="Rest between loops (ms)"
+                  onChange={(e) => {
+                    if (Number.isFinite(e.target.valueAsNumber)) {
+                      setRepeat(repeat, e.target.valueAsNumber);
+                    }
+                  }}
+                />
+              )}
+            </div>
+            {repeat === 'once' && animation.trigger.type === 'loop' && (
+              <p className="hint">The loop trigger repeats anyway.</p>
+            )}
+            {repeat !== 'once' && <p className="hint">Rest between loops, in ms.</p>}
+          </div>
         </section>
       )}
 
@@ -186,4 +260,10 @@ function DurationField({
       </div>
     </div>
   );
+}
+
+/** True for spring easings, given directly or as a token. */
+function isSpring(easing: Easing): boolean {
+  const e = easing.type === 'token' ? DEFAULT_TOKENS.easings[easing.name] : easing;
+  return e?.type === 'spring';
 }

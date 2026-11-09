@@ -13,7 +13,16 @@ export {
   type PlayerOptions,
   type ReducedMotionPreference,
 } from './player';
-export { cubicBezier, linear, resolveEasing, type EasingFunction } from './easing';
+export {
+  cubicBezier,
+  linear,
+  resolveEasing,
+  resolveMotion,
+  spring,
+  type EasingFunction,
+  type Motion,
+  type SpringCurve,
+} from './easing';
 export {
   cloneElementState,
   cloneValues,

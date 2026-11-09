@@ -32,3 +32,12 @@
   previous state, transition duration/easing, trigger, and a live preview on the shipping
   runtime. Pure edit functions in core (125 core tests), Zustand store, shared icon library
   component. Decision 006. M2 done pending the owner's filter-morph test by hand.
+- **2026-11-09** — M3 part 1: runtime playback completed. Closed-form springs (under-,
+  critically and over-damped) that set their own duration and keep it when interrupted;
+  `spring-gentle|snappy|bouncy` tokens. Sequences repeat (`loop` rests on the last state then
+  jumps, `ping-pong` rests at both ends), `reverse()` always stops at the start, missed cycles
+  are skipped, reduced motion never loops. Triggers `loop` (plays while on screen, pauses off
+  screen) and `appear` (once, first time on screen) via `IntersectionObserver`. Opacity/draw
+  clamped against overshoot. Editor inspector and `/runtime` playground expose springs,
+  loop/appear and repeat + rest. 67 runtime tests, 3.89 KB min+gzip. Decision 007. Next: M3
+  part 2, element transforms with pivot, opacity and draw in the editor.

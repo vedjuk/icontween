@@ -53,15 +53,87 @@ export function cubicBezier(x1: number, y1: number, x2: number, y2: number): Eas
   return (t) => (t <= 0 ? 0 : t >= 1 ? 1 : sampleY(solveS(t)));
 }
 
+/** A spring as an easing: progress over its own settle time, plus that time. */
+export interface SpringCurve {
+  ease: EasingFunction;
+  /** Milliseconds until the spring has settled. */
+  duration: number;
+}
+
+/** How close to the target (as a share of the distance) counts as settled. */
+const SETTLED = 0.001;
+/** Springs that would ring longer than this are cut off (ms). */
+const SPRING_MAX = 5000;
+
 /**
- * Turns an Easing from the data model into a function. Tokens are looked up in `tokens`
- * (one level deep). Springs arrive in M3; until then they use the `standard` curve.
+ * A damped spring released at rest, 0 → 1. Solved in closed form (no simulation), so it
+ * looks the same at any frame rate. Stiffness, damping and mass use the usual units
+ * (seconds), like Framer Motion or React Spring.
  */
+export function spring(stiffness: number, damping: number, mass: number): SpringCurve {
+  const w0 = Math.sqrt(stiffness / mass); // natural frequency
+  const zeta = damping / (2 * Math.sqrt(stiffness * mass)); // damping ratio
+  /** Signed distance from the target at t seconds, starting at -1. */
+  let offset: (t: number) => number;
+  if (Math.abs(zeta - 1) < 1e-6) {
+    offset = (t) => -(1 + w0 * t) * Math.exp(-w0 * t);
+  } else if (zeta < 1) {
+    const wd = w0 * Math.sqrt(1 - zeta * zeta);
+    const k = (zeta * w0) / wd;
+    offset = (t) => -Math.exp(-zeta * w0 * t) * (Math.cos(wd * t) + k * Math.sin(wd * t));
+  } else {
+    const root = Math.sqrt(zeta * zeta - 1);
+    const r1 = -w0 * (zeta - root);
+    const r2 = -w0 * (zeta + root);
+    const a = -r2 / (r2 - r1);
+    const b = r1 / (r2 - r1);
+    offset = (t) => a * Math.exp(r1 * t) + b * Math.exp(r2 * t);
+  }
+  // Settle time: the last millisecond the spring is still visibly away from its target.
+  let duration = 0;
+  for (let ms = 1; ms <= SPRING_MAX; ms++) {
+    if (Math.abs(offset(ms / 1000)) >= SETTLED) duration = ms;
+  }
+  duration = Math.max(duration, 1);
+  const seconds = duration / 1000;
+  return {
+    ease: (t) => (t <= 0 ? 0 : t >= 1 ? 1 : 1 + offset(t * seconds)),
+    duration,
+  };
+}
+
+/** A transition's easing and duration, resolved. Springs bring their own duration. */
+export interface Motion {
+  ease: EasingFunction;
+  duration: number;
+  /** True when the duration comes from a spring rather than the transition. */
+  spring: boolean;
+}
+
+/**
+ * Turns an Easing from the data model into a function and a duration. Tokens are looked up
+ * in `tokens` (one level deep); unknown tokens and invalid springs use the `standard` curve.
+ */
+export function resolveMotion(easing: Easing, duration: number, tokens: MotionTokens): Motion {
+  const e = easing.type === 'token' ? tokens.easings[easing.name] : easing;
+  if (e?.type === 'cubic-bezier') {
+    return { ease: cubicBezier(e.x1, e.y1, e.x2, e.y2), duration, spring: false };
+  }
+  if (e?.type === 'spring' && e.stiffness > 0 && e.mass > 0 && e.damping >= 0) {
+    const key = `${e.stiffness} ${e.damping} ${e.mass}`;
+    let curve = springs.get(key);
+    if (!curve) springs.set(key, (curve = spring(e.stiffness, e.damping, e.mass)));
+    return { ...curve, spring: true };
+  }
+  return { ease: STANDARD, duration, spring: false };
+}
+
+/** Springs are solved once per parameter set. */
+const springs = new Map<string, SpringCurve>();
+
+/** Just the easing function of `resolveMotion` (springs over their own settle time). */
 export function resolveEasing(easing: Easing, tokens: MotionTokens): EasingFunction {
-  let e: Easing | undefined = easing;
-  if (e.type === 'token') e = tokens.easings[e.name];
-  if (e?.type === 'cubic-bezier') return cubicBezier(e.x1, e.y1, e.x2, e.y2);
-  return STANDARD;
+  return resolveMotion(easing, 0, tokens).ease;
 }
 
 const STANDARD = cubicBezier(0.2, 0, 0, 1);

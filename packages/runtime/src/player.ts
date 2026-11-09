@@ -3,7 +3,7 @@
  * interruptible at any moment. See docs/decisions/005-runtime-v0.md.
  */
 import type { Animation, TriggerType } from '@icontween/core';
-import { clamp01, resolveEasing, type EasingFunction } from './easing';
+import { clamp01, resolveMotion, type EasingFunction } from './easing';
 import {
   assertSameStructure,
   cloneValues,
@@ -37,7 +37,10 @@ export interface PlayerOptions {
 }
 
 export interface Player {
-  /** Runs the sequence forwards from the current values. At the end, starts over. */
+  /**
+   * Runs the sequence forwards from the current values. At the end, starts over. Repeats
+   * (loop, ping-pong) until reverse() or stop(), except with reduced motion.
+   */
   play(): void;
   /** Runs the sequence backwards to its first state from the current values. */
   reverse(): void;
@@ -75,6 +78,10 @@ interface Run {
   legs: Leg[];
   index: number;
   dir: Direction;
+  /** Starts another cycle at the end (loop, ping-pong). */
+  repeat: boolean;
+  /** Loop only: values to jump to when the rest between cycles ends. */
+  jump: StateValues | null;
   /** Start time of the current leg. */
   start: number;
   /** Values when the current leg began. */
@@ -99,6 +106,10 @@ export function createPlayer(
   const clock = options.clock ?? defaultClock;
   const { elements, states, sequence } = animation;
   const steps = sequence.steps;
+  // The loop trigger implies repetition, even if the sequence says 'once'.
+  const repeatMode =
+    sequence.repeat === 'once' && animation.trigger.type === 'loop' ? 'loop' : sequence.repeat;
+  const rest = Math.max(0, sequence.restBetweenLoops ?? 0);
 
   const stateA = states[0];
   if (!stateA) throw new Error('IconTween: animation has no states');
@@ -148,14 +159,20 @@ export function createPlayer(
   /** Position right now, including progress through a running leg. */
   const positionNow = () => {
     if (!run) return position;
+    const elapsed = clock.now() - run.start;
+    // Resting at the end of a loop, before jumping back to the start.
+    if (run.jump && elapsed < 0) return steps.length;
     const leg = run.legs[run.index]!;
-    const p = leg.total > 0 ? clamp01((clock.now() - run.start) / leg.total) : 1;
+    const p = leg.total > 0 ? clamp01(elapsed / leg.total) : 1;
     return run.dir === 1 ? leg.step + p : leg.step + 1 - p;
   };
 
   const buildLeg = (step: number, dir: Direction, scale: number, mode: LegMode): Leg => {
     const t = steps[step]!;
-    let duration = resolveDuration(t.duration, tokens) * scale;
+    const motion = resolveMotion(t.easing, resolveDuration(t.duration, tokens), tokens);
+    // A spring settles in its own time however far it has to go, so a resumed spring leg
+    // keeps its full length instead of being squeezed.
+    let duration = motion.duration * (motion.spring && mode === 'motion' ? 1 : scale);
     const delays: Record<string, number> = {};
     if (mode === 'motion') {
       const base = elements.map(({ id }, i) => (t.delays?.[id] ?? 0) + (t.stagger ?? 0) * i);
@@ -174,7 +191,7 @@ export function createPlayer(
       duration,
       delays,
       total: duration + maxDelay,
-      ease: mode === 'motion' ? resolveEasing(t.easing, tokens) : () => 1,
+      ease: mode === 'motion' ? motion.ease : () => 1,
       mode,
     };
   };
@@ -188,10 +205,48 @@ export function createPlayer(
     }
   };
 
+  /** All steps of the sequence as legs, in one direction. */
+  const cycle = (dir: Direction): Leg[] =>
+    steps.map((_, i) => buildLeg(dir === 1 ? i : steps.length - 1 - i, dir, 1, 'motion'));
+
+  /**
+   * At the end of a repeating run: sets up the next cycle after the rest. Returns false
+   * when there is nothing to repeat (a cycle of zero length would spin forever).
+   */
+  const repeatRun = (r: Run): boolean => {
+    if (reduced()) return false; // The OS setting changed while looping.
+    const dir: Direction = repeatMode === 'ping-pong' ? (-r.dir as Direction) : 1;
+    const legs = cycle(dir);
+    const length = rest + legs.reduce((sum, leg) => sum + leg.total, 0);
+    if (length <= 0) return false;
+    r.legs = legs;
+    r.index = 0;
+    r.dir = dir;
+    r.jump = repeatMode === 'loop' ? valuesOf(path[0]!) : null;
+    r.start += rest;
+    // Far behind (a hidden tab, a long pause): skip the missed cycles instead of replaying.
+    const now = clock.now();
+    if (now - r.start > length) r.start = now;
+    r.from = cloneValues(current);
+    return true;
+  };
+
   const tick = () => {
     while (run) {
-      const leg = run.legs[run.index]!;
       const elapsed = clock.now() - run.start;
+      if (elapsed < 0) {
+        // Resting between cycles: hold the end of the last one.
+        render();
+        schedule();
+        return;
+      }
+      if (run.jump) {
+        copyInto(run.jump);
+        run.jump = null;
+        run.from = cloneValues(current);
+        position = 0;
+      }
+      const leg = run.legs[run.index]!;
       if (elapsed >= leg.total) {
         // Leg done: land exactly on its state and carry the leftover time into the next.
         copyInto(leg.target);
@@ -203,6 +258,7 @@ export function createPlayer(
           run.from = cloneValues(current);
           continue;
         }
+        if (run.repeat && repeatRun(run)) continue;
         run = null;
         render();
         options.onFinish?.(path[position] ?? stateA.id);
@@ -231,7 +287,10 @@ export function createPlayer(
     const isReduced = reduced();
     const rm = animation.reducedMotion.mode;
     if (isReduced && rm === 'none') return;
-    if (run?.dir === dir) return; // Already heading there; keep the curve going.
+    // Repetition only goes forwards, and never with reduced motion (no endless motion).
+    const repeat = dir === 1 && repeatMode !== 'once' && !isReduced;
+    // Already heading there; keep the curve going.
+    if (run && run.dir === dir && run.repeat === repeat) return;
 
     let x = positionNow();
     if (dir === 1 && x >= steps.length) {
@@ -254,7 +313,7 @@ export function createPlayer(
     position = x;
     fade = 1;
     run = legs.length
-      ? { legs, index: 0, dir, start: clock.now(), from: cloneValues(current) }
+      ? { legs, index: 0, dir, repeat, jump: null, start: clock.now(), from: cloneValues(current) }
       : null;
     tick();
   };
@@ -331,10 +390,38 @@ function bindTrigger(target: Element, trigger: TriggerType | 'none', player: Pla
     listeners.push(['click', () => player.play()]);
   } else if (trigger === 'toggle') {
     listeners.push(['click', () => player.toggle()]);
+  } else if (trigger === 'loop' || trigger === 'appear') {
+    return watchVisibility(target, trigger, player);
   }
-  // 'manual' and 'none' bind nothing. 'loop' and 'appear' arrive in M3.
+  // 'manual' and 'none' bind nothing.
   for (const [type, fn] of listeners) target.addEventListener(type, fn);
   return () => {
     for (const [type, fn] of listeners) target.removeEventListener(type, fn);
   };
+}
+
+/** Share of the target that must be on screen to count as visible. */
+const VISIBLE = 0.5;
+
+/**
+ * appear: plays once, the first time the target is on screen.
+ * loop: plays while the target is on screen and pauses when it isn't, so off-screen icons
+ * cost nothing. Without IntersectionObserver both simply start at once.
+ */
+function watchVisibility(target: Element, trigger: 'loop' | 'appear', player: Player) {
+  if (typeof IntersectionObserver !== 'function') {
+    player.play();
+    return () => {};
+  }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const visible = entries[entries.length - 1]?.isIntersecting ?? false;
+      if (visible) player.play();
+      else if (trigger === 'loop') player.stop();
+      if (visible && trigger === 'appear') observer.disconnect();
+    },
+    { threshold: VISIBLE },
+  );
+  observer.observe(target);
+  return () => observer.disconnect();
 }

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
-import { createPlayer, type PlayerOptions } from '../src';
+import type { Animation } from '@icontween/core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createPlayer, spring, type PlayerOptions } from '../src';
 import { fakeClock, LINEAR, makeSvg, testAnimation, yOf } from './helpers';
 
 function setup(anim = testAnimation(), options: PlayerOptions = {}) {
@@ -324,6 +325,247 @@ describe('triggers', () => {
     gone.player.destroy();
     fire(gone.svg, 'click');
     expect(gone.player.playing).toBe(false);
+  });
+});
+
+describe('springs', () => {
+  const SPRING = { type: 'spring', stiffness: 300, damping: 14, mass: 1 } as const;
+
+  it('ignores the transition duration and overshoots the target', () => {
+    const { clock, player, y, onFinish } = setup(testAnimation({}, { easing: SPRING }));
+    const { duration } = spring(300, 14, 1);
+    player.play();
+    let max = 0;
+    for (let t = 0; t < duration - 20; t += 10) {
+      clock.advance(10);
+      max = Math.max(max, y());
+    }
+    expect(player.playing).toBe(true); // still settling long after the 100 ms duration
+    expect(max).toBeGreaterThan(11);
+    clock.advance(40);
+    expect(y()).toBe(10);
+    expect(onFinish).toHaveBeenCalledWith('B');
+  });
+
+  it('keeps its full settle time when interrupted', () => {
+    const { clock, player, y } = setup(testAnimation({}, { easing: SPRING }));
+    const { duration } = spring(300, 14, 1);
+    player.play();
+    clock.advance(30);
+    player.reverse();
+    clock.advance(duration - 20);
+    expect(player.playing).toBe(true);
+    clock.advance(30);
+    expect(y()).toBe(0);
+  });
+
+  it('clamps overshooting opacity and draw when rendering', () => {
+    const anim = testAnimation({}, { easing: SPRING });
+    const b = anim.states[1]!.elements['el-1']!;
+    b.draw = { start: 0, end: 0.9 };
+    anim.states[0]!.elements['el-1']!.opacity = 0;
+    const { clock, player, svg } = setup(anim);
+    player.play();
+    clock.advance(120); // near the first overshoot
+    const path = svg.querySelector('path')!;
+    expect(Number(path.getAttribute('opacity') ?? 1)).toBeLessThanOrEqual(1);
+    const dash = Number(path.getAttribute('stroke-dasharray')?.split(' ')[0]);
+    expect(dash).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('repeat', () => {
+  /** A → B over 100 ms, then B → A over 100 ms. */
+  const cyclic = (sequence: Partial<Animation['sequence']> = {}) => {
+    const anim = testAnimation();
+    anim.sequence = {
+      steps: [
+        { from: 'A', to: 'B', duration: 100, easing: LINEAR },
+        { from: 'B', to: 'A', duration: 100, easing: LINEAR },
+      ],
+      repeat: 'loop',
+      ...sequence,
+    };
+    return anim;
+  };
+
+  it('loop: runs the sequence again and again', () => {
+    const { clock, player, y, onFinish } = setup(cyclic());
+    player.play();
+    clock.advance(250);
+    expect(y()).toBeCloseTo(5); // halfway into the second cycle
+    clock.advance(1000);
+    expect(player.playing).toBe(true);
+    expect(onFinish).not.toHaveBeenCalled();
+  });
+
+  it('loop: rests on the last state, then jumps to the first', () => {
+    const anim = testAnimation({}, {});
+    anim.sequence.repeat = 'loop';
+    anim.sequence.restBetweenLoops = 100;
+    const { clock, player, y } = setup(anim);
+    player.play();
+    clock.advance(150);
+    expect(y()).toBe(10); // resting on B
+    clock.advance(100); // rest over at 200, 50 ms into the next cycle
+    expect(y()).toBeCloseTo(5);
+  });
+
+  it('loop: reverse() during the rest goes back from where the icon is', () => {
+    const anim = testAnimation();
+    anim.sequence.repeat = 'loop';
+    anim.sequence.restBetweenLoops = 500;
+    const { clock, player, y, onFinish } = setup(anim);
+    player.play();
+    clock.advance(200);
+    player.reverse();
+    clock.advance(50);
+    expect(y()).toBeCloseTo(5);
+    clock.advance(60);
+    expect(y()).toBe(0);
+    expect(player.playing).toBe(false);
+    expect(onFinish).toHaveBeenCalledWith('A');
+  });
+
+  it('ping-pong: forwards, rest, backwards, rest, forwards', () => {
+    const anim = testAnimation();
+    anim.sequence.repeat = 'ping-pong';
+    anim.sequence.restBetweenLoops = 50;
+    const { clock, player, y } = setup(anim);
+    player.play();
+    clock.advance(130);
+    expect(y()).toBe(10); // resting at B
+    clock.advance(70); // 50 ms on the way back
+    expect(y()).toBeCloseTo(5);
+    clock.advance(70); // back at A at 250, resting until 300
+    expect(y()).toBe(0);
+    clock.advance(80); // 50 ms forwards again
+    expect(y()).toBeCloseTo(5);
+  });
+
+  it('ping-pong: reverse() on the way back stops at the start', () => {
+    const anim = testAnimation();
+    anim.sequence.repeat = 'ping-pong';
+    const { clock, player, y } = setup(anim);
+    player.play();
+    clock.advance(150); // heading back
+    player.reverse();
+    clock.advance(1000);
+    expect(y()).toBe(0);
+    expect(player.playing).toBe(false);
+  });
+
+  it('stop() ends repetition, play() resumes it', () => {
+    const { clock, player, y } = setup(cyclic());
+    player.play();
+    clock.advance(150);
+    player.stop();
+    clock.advance(1000);
+    expect(y()).toBeCloseTo(5);
+    player.play();
+    clock.advance(50);
+    expect(y()).toBe(0);
+    clock.advance(50);
+    expect(player.playing).toBe(true);
+  });
+
+  it('skips missed cycles after a long gap instead of replaying them', () => {
+    const { clock, player } = setup(cyclic());
+    player.play();
+    let callbacks = 0;
+    const frame = clock.frame;
+    clock.frame = (cb) => {
+      callbacks++;
+      return frame(cb);
+    };
+    clock.advance(60_000, 60_000); // one huge frame, like a tab coming back
+    expect(callbacks).toBe(1);
+    expect(player.playing).toBe(true);
+  });
+
+  it('never spins on a zero-length cycle', () => {
+    const anim = testAnimation({}, { duration: 0 });
+    anim.sequence.repeat = 'loop';
+    const { player, y } = setup(anim);
+    player.play();
+    expect(y()).toBe(10);
+    expect(player.playing).toBe(false);
+  });
+
+  it('plays once with reduced motion', () => {
+    const { clock, player, y, onFinish } = setup(cyclic(), { reducedMotion: 'reduce' });
+    player.play();
+    clock.advance(250);
+    expect(y()).toBe(0);
+    expect(player.playing).toBe(false);
+    expect(onFinish).toHaveBeenCalledWith('A');
+  });
+
+  it("the loop trigger repeats even when the sequence says 'once'", () => {
+    const anim = cyclic({ repeat: 'once' });
+    anim.trigger = { type: 'loop' };
+    const { clock, player } = setup(anim);
+    clock.advance(500);
+    expect(player.playing).toBe(true);
+  });
+});
+
+describe('loop and appear triggers', () => {
+  type Callback = (entries: { isIntersecting: boolean }[]) => void;
+  let observers: { callback: Callback; disconnected: boolean }[] = [];
+
+  beforeEach(() => {
+    observers = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        record: { callback: Callback; disconnected: boolean };
+        constructor(callback: Callback) {
+          this.record = { callback, disconnected: false };
+          observers.push(this.record);
+        }
+        observe() {}
+        disconnect() {
+          this.record.disconnected = true;
+        }
+      },
+    );
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const show = (visible: boolean) =>
+    observers.forEach((o) => !o.disconnected && o.callback([{ isIntersecting: visible }]));
+
+  it('appear: plays once, the first time the icon is on screen', () => {
+    const { clock, player, y } = setup(testAnimation({ trigger: { type: 'appear' } }));
+    expect(player.playing).toBe(false);
+    show(true);
+    clock.advance(200);
+    expect(y()).toBe(10);
+    expect(observers[0]!.disconnected).toBe(true);
+  });
+
+  it('loop: plays while on screen and pauses off screen', () => {
+    const anim = testAnimation({ trigger: { type: 'loop' } });
+    anim.sequence.steps.push({ from: 'B', to: 'A', duration: 100, easing: LINEAR });
+    const { clock, player, y } = setup(anim);
+    show(true);
+    clock.advance(50);
+    expect(y()).toBeCloseTo(5);
+    show(false);
+    expect(player.playing).toBe(false);
+    clock.advance(500);
+    show(true);
+    clock.advance(50);
+    expect(y()).toBe(10);
+    player.destroy();
+    expect(observers[0]!.disconnected).toBe(true);
+  });
+
+  it('starts at once without IntersectionObserver', () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+    const { player } = setup(testAnimation({ trigger: { type: 'appear' } }));
+    expect(player.playing).toBe(true);
   });
 });
 

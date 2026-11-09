@@ -10,6 +10,8 @@ const HINTS: Partial<Record<Animation['trigger']['type'], string>> = {
   hover: 'Hover or focus the tile',
   click: 'Click the tile',
   toggle: 'Click the tile to toggle',
+  loop: 'Plays while the preview is on screen',
+  appear: 'Played once when it came on screen. Edit to replay.',
 };
 
 export function Preview({ animation }: { animation: Animation }) {

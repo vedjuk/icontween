@@ -3,6 +3,7 @@
  * `segmentsToD()` and `transformAttribute()` in core (tested), without depending on core.
  */
 import type { ElementState, PreparedElement, ViewBox } from '@icontween/core';
+import { clamp01 } from './easing';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -78,11 +79,14 @@ export function bindPaths(
  * Drawing uses pathLength="1" so dash lengths are fractions of the path.
  */
 export function renderPath(target: PathTarget, es: ElementState, fade = 1): void {
-  const { start, end } = es.draw;
+  // Springs and overshooting curves can carry values past their range; clamp the ones
+  // that have one.
+  const start = clamp01(es.draw.start);
+  const end = clamp01(es.draw.end);
   const drawn = end - start;
   const partial = start > 0 || end < 1;
   // A zero-length dash still paints round caps, so a fully undrawn path is hidden instead.
-  const opacity = es.opacity * fade * (partial && drawn <= 0.0005 ? 0 : 1);
+  const opacity = clamp01(es.opacity) * fade * (partial && drawn <= 0.0005 ? 0 : 1);
   set(target, 'd', toD(es));
   set(target, 'transform', toTransform(es) || null);
   set(target, 'opacity', opacity === 1 ? null : num(opacity));

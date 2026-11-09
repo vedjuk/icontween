@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { cubicBezier, DEFAULT_TOKENS, linear, resolveDuration, resolveEasing } from '../src';
+import {
+  cubicBezier,
+  DEFAULT_TOKENS,
+  linear,
+  resolveDuration,
+  resolveEasing,
+  resolveMotion,
+  spring,
+} from '../src';
 
 describe('cubicBezier', () => {
   it('hits the endpoints exactly', () => {
@@ -44,19 +52,87 @@ describe('tokens', () => {
   it('resolves easing tokens and falls back to standard', () => {
     const standard = resolveEasing({ type: 'token', name: 'standard' }, DEFAULT_TOKENS);
     const unknown = resolveEasing({ type: 'token', name: 'nope' }, DEFAULT_TOKENS);
-    const spring = resolveEasing(
-      { type: 'spring', stiffness: 100, damping: 10, mass: 1 },
+    const broken = resolveEasing(
+      { type: 'spring', stiffness: 0, damping: 1, mass: 1 },
       DEFAULT_TOKENS,
     );
     for (const t of [0.1, 0.5, 0.9]) {
       expect(unknown(t)).toBeCloseTo(standard(t), 9);
-      expect(spring(t)).toBeCloseTo(standard(t), 9);
+      expect(broken(t)).toBeCloseTo(standard(t), 9);
     }
+  });
+
+  it('gives springs their own duration and keeps curves on the transition duration', () => {
+    const curve = resolveMotion({ type: 'token', name: 'standard' }, 300, DEFAULT_TOKENS);
+    expect(curve).toMatchObject({ duration: 300, spring: false });
+    const gentle = resolveMotion({ type: 'token', name: 'spring-gentle' }, 300, DEFAULT_TOKENS);
+    expect(gentle.spring).toBe(true);
+    expect(gentle.duration).toBe(spring(170, 26, 1).duration);
   });
 
   it('resolves duration tokens and falls back to base', () => {
     expect(resolveDuration(120, DEFAULT_TOKENS)).toBe(120);
     expect(resolveDuration({ token: 'slow' }, DEFAULT_TOKENS)).toBe(400);
     expect(resolveDuration({ token: 'nope' }, DEFAULT_TOKENS)).toBe(250);
+  });
+});
+
+describe('spring', () => {
+  const sample = (ease: (t: number) => number, n = 200) =>
+    Array.from({ length: n + 1 }, (_, i) => ease(i / n));
+
+  it('starts at 0, ends exactly at 1, and settles within its duration', () => {
+    for (const [k, c, m] of [
+      [170, 26, 1], // ≈ critical
+      [300, 14, 1], // underdamped
+      [100, 40, 1], // overdamped
+      [100, 20, 1], // exactly critical
+    ] as const) {
+      const { ease, duration } = spring(k, c, m);
+      expect(ease(0)).toBe(0);
+      expect(ease(1)).toBe(1);
+      expect(duration).toBeGreaterThan(100);
+      expect(duration).toBeLessThan(3000); // overdamped springs crawl in slowly
+      // Just before the end it is already within the settle threshold.
+      expect(Math.abs(1 - ease(0.999))).toBeLessThan(0.0011);
+    }
+  });
+
+  it('overshoots when underdamped and never when (over)damped', () => {
+    expect(Math.max(...sample(spring(300, 14, 1).ease))).toBeGreaterThan(1.1);
+    for (const [k, c] of [
+      [170, 26],
+      [100, 20],
+      [100, 40],
+    ] as const) {
+      const values = sample(spring(k, c, 1).ease);
+      expect(Math.max(...values)).toBeLessThanOrEqual(1 + 1e-9);
+      // Monotonic: no wobble.
+      values.forEach((v, i) => i > 0 && expect(v).toBeGreaterThanOrEqual(values[i - 1]! - 1e-12));
+    }
+  });
+
+  it('is continuous across the critical-damping boundary', () => {
+    const below = spring(100, 19.9999, 1);
+    const at = spring(100, 20, 1);
+    const above = spring(100, 20.0001, 1);
+    for (const t of [0.1, 0.3, 0.6]) {
+      // Compare at the same absolute time.
+      const ms = t * at.duration;
+      expect(below.ease(ms / below.duration)).toBeCloseTo(at.ease(t), 3);
+      expect(above.ease(ms / above.duration)).toBeCloseTo(at.ease(t), 3);
+    }
+  });
+
+  it('stiffer springs settle sooner, heavier ones later', () => {
+    const base = spring(170, 26, 1).duration;
+    expect(spring(400, 40, 1).duration).toBeLessThan(base);
+    expect(spring(170, 26, 3).duration).toBeGreaterThan(base);
+  });
+
+  it('cuts undamped springs off at 5 s', () => {
+    const { ease, duration } = spring(100, 0, 1);
+    expect(duration).toBe(5000);
+    expect(ease(1)).toBe(1);
   });
 });
