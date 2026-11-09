@@ -44,6 +44,9 @@ importers:
       '@icontween/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@icontween/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -82,7 +85,23 @@ importers:
         specifier: workspace:*
         version: link:../runtime
 
-  packages/runtime: {}
+  packages/runtime:
+    devDependencies:
+      '@icontween/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/jsdom':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
+      jsdom:
+        specifier: ^31.0.0
+        version: 31.0.0
+      vite:
+        specifier: ^8.3.7
+        version: 8.3.7(@types/node@24.19.2)
 
 packages:
 
@@ -2128,6 +2147,17 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  vite@8.3.7(@types/node@24.19.2):
+    dependencies:
+      lightningcss: 1.33.0
+      picomatch: 4.0.7
+      postcss: 8.5.32
+      rolldown: 1.2.18
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 24.19.2
+      fsevents: 2.3.3
 
   vite@8.3.7(@types/node@26.6.6):
     dependencies:

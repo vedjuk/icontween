@@ -17,3 +17,12 @@
   `sanitizeSvg()` and `iconToSvg()`. 18 exact Lucide 1.70.0 sources in `examples/source`, all
   preparing cleanly (tested) and matching within half a pixel at 20× (measured in the
   browser). 115 tests. M1 done pending the owner's visual check. Decision 004.
+- **2026-11-09** — M2 part 1: runtime v0 in `packages/runtime`. `createPlayer(svg, animation)`
+  blends every number between states (segments, transform, opacity, draw) with cubic-bezier
+  easing and tokens; `play`/`reverse`/`toggle`/`stop`/`setState`; interruptible from the
+  current values, with the return leg taking the time already spent. Per-element delays and
+  stagger (mirrored on reverse), reduced motion (instant/fade/none, OS setting or forced),
+  triggers hover (+ focus), click, toggle, manual. Own `d` writer, tested identical to core's.
+  3.1 KB min+gzip (`pnpm --filter @icontween/runtime size`). 45 runtime tests. `/runtime`
+  playground with hand-built filter-sliders and menu → close demos. Decision 005. Next: M2
+  part 2, the editor (clone A → B, drag nodes and handles, onion skin) on this runtime.
