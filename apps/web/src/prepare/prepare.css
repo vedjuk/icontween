@@ -33,6 +33,15 @@
   font-weight: 600;
 }
 
+.header-link {
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.header-link:hover {
+  text-decoration: underline;
+}
+
 .prepare-privacy {
   margin-left: auto;
   color: var(--muted);

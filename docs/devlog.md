@@ -26,3 +26,9 @@
   3.1 KB min+gzip (`pnpm --filter @icontween/runtime size`). 45 runtime tests. `/runtime`
   playground with hand-built filter-sliders and menu → close demos. Decision 005. Next: M2
   part 2, the editor (clone A → B, drag nodes and handles, onion skin) on this runtime.
+- **2026-11-09** — M2 part 2: `/editor`. Pick an icon (starters, files, paste, drop), clone A
+  → B, select an element and drag its anchors and handles (handles follow anchors, closed
+  shapes stay closed, 0.5 snap with Alt to skip, arrow nudges, exact X/Y). Onion skin of the
+  previous state, transition duration/easing, trigger, and a live preview on the shipping
+  runtime. Pure edit functions in core (125 core tests), Zustand store, shared icon library
+  component. Decision 006. M2 done pending the owner's filter-morph test by hand.

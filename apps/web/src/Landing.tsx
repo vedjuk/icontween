@@ -31,8 +31,8 @@ export function Landing() {
       <p className="note">
         A browser-based tool for crafting purposeful animations for SVG icons. In the workshop.
       </p>
-      <a className="link" href="/prepare">
-        Try the prepare step
+      <a className="link" href="/editor">
+        Try the editor
       </a>
       <a className="link link-quiet" href="https://github.com/vedjuk/icontween">
         Follow along on GitHub
