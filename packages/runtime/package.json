@@ -1,0 +1,15 @@
+{
+  "name": "@icontween/runtime",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tiny, dependency-free playback runtime for IconTween animations. Published later as `icontween`.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

@@ -1,0 +1,117 @@
+:root {
+  --bg: #fbfbfa;
+  --fg: #18181b;
+  --muted: #71717a;
+  /* Vermilion. --accent-text is a deeper shade for small text (AA on --bg). */
+  --accent: #d9432a;
+  --accent-text: #c23a22;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111113;
+    --fg: #f4f4f5;
+    --muted: #a1a1aa;
+    --accent: #ff6b4e;
+    --accent-text: #ff6b4e;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.placeholder {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.mark {
+  width: 48px;
+  height: 48px;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+/* Stroke draw-on. Purpose: a single, quiet arrival. Not a d-property morph. */
+.mark path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 600ms cubic-bezier(0.2, 0, 0, 1) 200ms forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+.wordmark {
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.wordmark-icon {
+  font-weight: 400;
+}
+
+.wordmark-tween {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.tagline {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.note {
+  margin: 0;
+  max-width: 32rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.link {
+  margin-top: 0.75rem;
+  color: var(--accent-text);
+  font-size: 0.9375rem;
+  text-underline-offset: 0.2em;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
