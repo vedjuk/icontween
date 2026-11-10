@@ -83,3 +83,11 @@
   numbers are one step each. ⌘Z / ⇧⌘Z (Ctrl+Z / Ctrl+Y), Undo and Redo in the header; text
   fields keep native undo. History clears when another icon opens. 169 core + 68 runtime
   tests, runtime unchanged. Decision 012. Next: check the 12 starters can be built (M3 done).
+- **2026-11-10** — M3 part 7: starter check, **M3 done.** `core/test/starter-builds.test.ts`
+  builds all 12 starters (brief §12) with only the operations the editor's controls call
+  (point moves one at a time, transforms, pivot, opacity, draw, states, path, timing,
+  delays, trigger, repeat). Each pair's states are checked against the Lucide icons
+  (within 0.5 units; the wrong state is 2.5–12 off). No Prepare-step structure tools needed:
+  prepare the icon with more parts (pause, eye-off) and reshape state A too. menu → x also
+  built by hand in the running editor. 197 core + 68 runtime tests. Decision 013.
+  Next: M4 (persistence, export, sharing).
