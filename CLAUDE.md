@@ -42,6 +42,7 @@ Node 24 (`.nvmrc`), pnpm 10. Run from the repo root:
 - `pnpm typecheck` — `tsc` in every package
 - `pnpm lint` — ESLint + Prettier check; `pnpm format` to fix formatting
 - `pnpm build` — production build; static output in `apps/web/dist`
+- `pnpm export-check` — builds every starter in every export format and serves a self-checking page on http://localhost:5180 to open in Safari, Chrome and Firefox (decision 018)
 
 CI (`.github/workflows/ci.yml`) runs typecheck, lint, test and build on every push.
 Workspace packages are consumed from source (`exports` → `src/index.ts`); see `docs/decisions/001-monorepo-and-tooling.md`.

@@ -1,0 +1,99 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  --pass: #1a7f37;
+  --fail: #cf222e;
+}
+body {
+  max-width: 960px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+header {
+  position: sticky;
+  top: 0;
+  padding: 8px 0;
+  background: Canvas;
+  z-index: 1;
+}
+h1 {
+  margin: 0;
+  font-size: 20px;
+}
+small {
+  display: block;
+  opacity: 0.7;
+  font-weight: normal;
+}
+.note {
+  opacity: 0.8;
+  font-size: 14px;
+}
+.stage {
+  position: sticky;
+  top: 96px;
+  z-index: 1;
+  background: Canvas;
+}
+#stage {
+  width: 100%;
+  height: 132px;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+  border-radius: 8px;
+}
+/* Rendered (so it can be measured and its SMIL runs) but out of the way. */
+#lab {
+  position: absolute;
+  left: -10000px;
+  width: 200px;
+  height: 200px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+th,
+td {
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 15%, transparent);
+}
+.pass,
+.pass summary {
+  color: var(--pass);
+}
+.fail,
+.fail summary {
+  color: var(--fail);
+  font-weight: 600;
+}
+td ul {
+  margin: 4px 0;
+  padding-left: 16px;
+  color: CanvasText;
+  font-weight: normal;
+}
+textarea {
+  width: 100%;
+  font:
+    12px ui-monospace,
+    monospace;
+}
+#gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+}
+#gallery figure {
+  margin: 0;
+}
+.pair {
+  display: flex;
+  gap: 12px;
+  color: CanvasText;
+}
+figcaption {
+  font-size: 13px;
+}

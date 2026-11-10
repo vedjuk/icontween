@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IconTween export check</title>
+    <link rel="stylesheet" href="check.css" />
+  </head>
+  <body>
+    <header>
+      <h1>IconTween export check</h1>
+      <p id="browser">…</p>
+      <p id="status">Starting…</p>
+    </header>
+
+    <p class="note">
+      Every starter in every export format, checked in this browser against the runtime the editor
+      previews with. Keep this tab in front while it runs: browsers slow down animation frames in
+      background tabs. To check reduced motion, turn on Reduce Motion in the system settings and
+      reload.
+    </p>
+
+    <section class="stage">
+      <!-- HTML and React exports run here, on screen (loop and appear wait to be seen). -->
+      <iframe id="stage" title="Export under test"></iframe>
+      <!-- SMIL files are seeked here, and the reference runtime plays here. -->
+      <iframe id="lab" title="Lab" srcdoc="<!doctype html><body style='margin:0'>"></iframe>
+    </section>
+
+    <table id="results">
+      <thead>
+        <tr>
+          <th scope="col">Starter</th>
+          <th scope="col">SVG + SMIL</th>
+          <th scope="col">HTML + runtime</th>
+          <th scope="col">React</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <section>
+      <h2>Report</h2>
+      <textarea id="report" rows="8" readonly></textarea>
+      <button id="copy" type="button">Copy report</button>
+    </section>
+
+    <section>
+      <h2>By eye: SVG + SMIL, inline and as &lt;img&gt;</h2>
+      <p class="note">
+        Left: the SVG inline (hover, click and toggle work here). Right: the same file as an
+        <code>&lt;img&gt;</code>: loop and appear play, the others show their first state. Look for
+        smooth motion and no flashes.
+        <button id="replay" type="button">Replay</button>
+      </p>
+      <div id="gallery"></div>
+    </section>
+
+    <script src="icontween.iife.js"></script>
+    <script src="check.js"></script>
+  </body>
+</html>

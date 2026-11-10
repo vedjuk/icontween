@@ -16,7 +16,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",
     "test": "vitest run",
-    "size": "node scripts/size.js"
+    "size": "node scripts/size.js",
+    "export-check": "node export-check/generate.js && node export-check/serve.js"
   },
   "devDependencies": {
     "@icontween/core": "workspace:*",

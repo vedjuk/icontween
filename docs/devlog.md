@@ -139,3 +139,15 @@
   Checked in the preview (Chrome): click, toggle, hover inline; loop and appear as
   `<img>`; reduced copy. 310 core + 112 runtime tests. Decision 017.
   Next: cross-browser check of every export (Safari, Chrome, Firefox).
+- **2026-11-10** — M4 part 5: cross-browser export check. `pnpm export-check` writes every
+  starter as SVG + SMIL, HTML + runtime, JSON and React into a gitignored folder, builds
+  the React components in a fresh Vite `react-ts` app (strict tsc + vite build, installed
+  from the pnpm store outside the workspace), and serves a self-checking page on :5180.
+  The page compares each export with the runtime on a fake clock as the browser renders
+  them: SMIL seeked to 61 times per run (full/reduced, forwards/back, triggers fired as
+  events, media query), HTML and React played for real in a visible frame (moves, then
+  rests where the runtime rests; loops keep moving; React's reduce prop). Gallery shows
+  inline and `<img>` copies by eye. Checked in Chrome: all 84 checks pass; a changed curve
+  or moved point fails. Owner ran it in Safari 26.5 and Firefox 159: all 84 pass in both.
+  Decision 018. M4 done.
+  Next: M5 (showcase and launch).

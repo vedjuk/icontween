@@ -6,7 +6,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/coverage/**'] },
+  { ignores: ['**/dist/**', '**/coverage/**', 'packages/runtime/export-check/out/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -19,8 +19,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ['*.js', '**/*.config.{js,ts}', '**/scripts/**/*.js'],
+    files: ['*.js', '**/*.config.{js,ts}', '**/scripts/**/*.js', '**/export-check/*.js'],
     languageOptions: { globals: globals.node },
+  },
+  {
+    files: ['**/export-check/page/*.js'],
+    languageOptions: { globals: globals.browser },
   },
   prettier,
 );
