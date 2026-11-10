@@ -3,7 +3,8 @@
  * path of state ids and rebuilt into steps, keeping each step's timing where it can. All
  * functions are pure, like those in edit.ts. See docs/decisions/009-sequences-and-stagger.md.
  */
-import type { Animation, Transition } from './schema';
+import { PURPOSE_DEFAULTS, purposeTransition } from './defaults';
+import type { Animation, Purpose, Transition } from './schema';
 
 /** State ids along the sequence: the first state, then where each step goes. */
 export function sequencePath(animation: Animation): string[] {
@@ -12,9 +13,13 @@ export function sequencePath(animation: Animation): string[] {
   return first === undefined ? [] : [first, ...steps.map((s) => s.to)];
 }
 
-/** The transition into a newly added step. */
-export function defaultTransition(from: string, to: string): Transition {
-  return { from, to, duration: { token: 'base' }, easing: { type: 'token', name: 'standard' } };
+/** The transition into a newly added step: the purpose's default timing. */
+export function defaultTransition(
+  from: string,
+  to: string,
+  purpose: Purpose = 'state-change',
+): Transition {
+  return purposeTransition(purpose, from, to);
 }
 
 /**
@@ -37,7 +42,7 @@ export function setSequencePath(animation: Animation, path: readonly string[]): 
       return cloneTransition(old[same]!);
     }
     const near = old[i];
-    if (!near) return defaultTransition(from, to);
+    if (!near) return defaultTransition(from, to, animation.purpose);
     const step: Transition = {
       from,
       to,
@@ -122,6 +127,12 @@ export function applyPattern(animation: Animation, id: PatternId): Animation {
 export function pathWithNewState(animation: Animation, newId: string): string[] {
   const pattern = matchPattern(animation);
   const ids = [...animation.states.map((s) => s.id), newId];
+  if (!animation.sequence.steps.length) {
+    // The first steps follow the purpose's pattern (A→B→A for feedback).
+    const wanted = PURPOSE_DEFAULTS[animation.purpose].pattern;
+    const template = patternTemplates(ids).find((t) => t.id === wanted);
+    return template ? template.path : [...sequencePath(animation), newId];
+  }
   if (pattern) return patternTemplates(ids).find((t) => t.id === pattern.id)!.path;
   const path = sequencePath(animation);
   if (path.length >= 3 && path[path.length - 1] === path[0]) {

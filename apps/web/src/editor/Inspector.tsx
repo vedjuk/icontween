@@ -1,10 +1,21 @@
 import {
+  PURPOSES,
+  PURPOSE_DEFAULTS,
+  REDUCED_MOTION_MODES,
   elementOffsets,
   getPoint,
+  patternTemplates,
   pivotPresets,
+  purposeOverrides,
+  sameDuration,
+  sameEasing,
   sequencePath,
   type Animation,
   type Easing,
+  type MotionTokens,
+  type Purpose,
+  type PurposeField,
+  type ReducedMotion,
   type Sequence,
   type Transition,
   type TriggerType,
@@ -49,6 +60,23 @@ const TRIGGERS: { id: TriggerType; label: string }[] = [
   { id: 'appear', label: 'Appear (once, on screen)' },
 ];
 
+const REDUCED_MOTION_LABELS: Record<ReducedMotion['mode'], string> = {
+  instant: 'Jump to each state',
+  fade: 'Short fade',
+  none: 'No motion (stays on A)',
+};
+
+const FIELD_LABELS: Record<PurposeField, string> = {
+  trigger: 'trigger',
+  pattern: 'pattern',
+  timing: 'timing',
+  'reduced-motion': 'reduced motion',
+};
+
+/** Marks the option that is the purpose's default. */
+const withDefault = (label: string, isDefault: boolean) =>
+  isDefault ? `${label} · default` : label;
+
 const REPEATS: { id: Sequence['repeat']; label: string }[] = [
   { id: 'once', label: 'Once' },
   { id: 'loop', label: 'Loop' },
@@ -66,9 +94,10 @@ export function Inspector() {
   const point = useEditor((s) => s.point);
   const snap = useEditor((s) => s.snap);
   const onion = useEditor((s) => s.onion);
-  const { selectElement, movePoint, setTrigger, setRepeat, setSnap, setOnion } =
+  const { selectElement, movePoint, setTrigger, setRepeat, setSnap, setOnion, setReducedMotion } =
     useEditor.getState();
   const { repeat, restBetweenLoops = 0 } = animation.sequence;
+  const defaults = PURPOSE_DEFAULTS[animation.purpose];
 
   const state = animation.states.find((s) => s.id === stateId)!;
   const step = animation.sequence.steps[stepIndex];
@@ -78,6 +107,8 @@ export function Inspector() {
   return (
     <aside className="inspector" aria-label="Inspector">
       <Preview animation={animation} />
+
+      <PurposeSection animation={animation} />
 
       <section>
         <h2 className="section-title">Elements</h2>
@@ -137,7 +168,7 @@ export function Inspector() {
             >
               {TRIGGERS.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.label}
+                  {withDefault(t.label, t.id === defaults.trigger)}
                 </option>
               ))}
             </select>
@@ -180,8 +211,27 @@ export function Inspector() {
             )}
             {repeat !== 'once' && <p className="hint">Rest between loops, in ms.</p>}
           </div>
+          <label className="field">
+            <span>Reduced motion</span>
+            <select
+              value={animation.reducedMotion.mode}
+              onChange={(e) => setReducedMotion(e.target.value as ReducedMotion['mode'])}
+            >
+              {REDUCED_MOTION_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {withDefault(REDUCED_MOTION_LABELS[mode], mode === defaults.reducedMotion)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="hint">
+            For people who asked their system for less motion. It never loops. Try it with the
+            preview’s Reduced button.
+          </p>
         </section>
       )}
+
+      <TokensSection />
 
       <section>
         <h2 className="section-title">View</h2>
@@ -210,12 +260,10 @@ function StepTiming({
 }) {
   const { setStepTiming, setDelay, setPath, selectElement } = useEditor.getState();
   const elementId = useEditor((s) => s.elementId);
+  const tokens = useEditor((s) => s.tokens);
+  const defaults = PURPOSE_DEFAULTS[animation.purpose];
   const path = sequencePath(animation);
-  const motion = resolveMotion(
-    step.easing,
-    resolveDuration(step.duration, DEFAULT_TOKENS),
-    DEFAULT_TOKENS,
-  );
+  const motion = resolveMotion(step.easing, resolveDuration(step.duration, tokens), tokens);
   const offsets = elementOffsets(animation, index);
   const total = Math.max(1, ...Object.values(offsets).map((o) => o + motion.duration));
   const pct = (ms: number) => `${(ms / total) * 100}%`;
@@ -239,12 +287,17 @@ function StepTiming({
           ))}
         </select>
       </label>
-      {isSpring(step.easing) ? (
+      {isSpring(step.easing, tokens) ? (
         <p className="hint">
           Springs set their own length: about {Math.round(motion.duration / 10) * 10} ms.
         </p>
       ) : (
-        <DurationField step={step} onChange={(duration) => setStepTiming({ duration })} />
+        <DurationField
+          step={step}
+          tokens={tokens}
+          defaultDuration={defaults.duration}
+          onChange={(duration) => setStepTiming({ duration })}
+        />
       )}
       <label className="field">
         <span>Easing</span>
@@ -256,7 +309,7 @@ function StepTiming({
         >
           {EASINGS.map((o) => (
             <option key={o.id} value={o.id}>
-              {o.label}
+              {withDefault(o.label, sameEasing(o.easing, defaults.easing))}
             </option>
           ))}
         </select>
@@ -516,12 +569,15 @@ function RangeField({
 
 function DurationField({
   step,
+  tokens: { durations: tokens },
+  defaultDuration,
   onChange,
 }: {
   step: Transition;
+  tokens: MotionTokens;
+  defaultDuration: Transition['duration'];
   onChange: (duration: Transition['duration']) => void;
 }) {
-  const tokens = DEFAULT_TOKENS.durations;
   const token = typeof step.duration === 'number' ? 'custom' : step.duration.token;
   const ms =
     typeof step.duration === 'number' ? step.duration : (tokens[step.duration.token] ?? 250);
@@ -535,7 +591,7 @@ function DurationField({
         >
           {Object.entries(tokens).map(([name, value]) => (
             <option key={name} value={name}>
-              {name} · {value} ms
+              {withDefault(`${name} · ${value} ms`, sameDuration({ token: name }, defaultDuration))}
             </option>
           ))}
           <option value="custom">Custom</option>
@@ -559,7 +615,147 @@ function DurationField({
 }
 
 /** True for spring easings, given directly or as a token. */
-function isSpring(easing: Easing): boolean {
-  const e = easing.type === 'token' ? DEFAULT_TOKENS.easings[easing.name] : easing;
+function isSpring(easing: Easing, tokens: MotionTokens): boolean {
+  const e = easing.type === 'token' ? tokens.easings[easing.name] : easing;
   return e?.type === 'spring';
+}
+
+const PATTERN_NAMES = Object.fromEntries(
+  patternTemplates(['A', 'B', 'C']).map((t) => [t.id, t.name]),
+);
+
+/** Why the motion exists. Sets the defaults below it; what differs is listed as changed. */
+function PurposeSection({ animation }: { animation: Animation }) {
+  const { setPurpose, resetToPurposeDefaults } = useEditor.getState();
+  const d = PURPOSE_DEFAULTS[animation.purpose];
+  const overrides = purposeOverrides(animation);
+  const easing = EASINGS.find((o) => sameEasing(o.easing, d.easing))?.label ?? 'custom';
+  const trigger = TRIGGERS.find((t) => t.id === d.trigger)?.label ?? d.trigger;
+
+  return (
+    <section>
+      <label className="field">
+        <span className="section-title">Purpose</span>
+        <select value={animation.purpose} onChange={(e) => setPurpose(e.target.value as Purpose)}>
+          {PURPOSES.map((p) => (
+            <option key={p} value={p}>
+              {PURPOSE_DEFAULTS[p].name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="hint">{d.hint}</p>
+      <p className="purpose-defaults">
+        {trigger} · {d.duration.token} · {easing} · {PATTERN_NAMES[d.pattern]} ·{' '}
+        {REDUCED_MOTION_LABELS[d.reducedMotion].toLowerCase()} when reduced
+      </p>
+      {overrides.length > 0 ? (
+        <div className="purpose-overrides">
+          <p className="hint">
+            Changed: {overrides.map((f) => FIELD_LABELS[f]).join(', ')}. Changing the purpose keeps
+            these.
+          </p>
+          <button type="button" className="button" onClick={resetToPurposeDefaults}>
+            Use {d.name.toLowerCase()} defaults
+          </button>
+        </div>
+      ) : (
+        <p className="hint">Uses the defaults.</p>
+      )}
+    </section>
+  );
+}
+
+const TOKEN_LABELS = Object.fromEntries(
+  EASINGS.filter((o) => o.easing.type === 'token').map((o) => [
+    (o.easing as { name: string }).name,
+    o.label,
+  ]),
+);
+
+/** Project motion tokens: named durations and easings that steps refer to. */
+function TokensSection() {
+  const tokens = useEditor((s) => s.tokens);
+  const { setDurationToken, setEasingToken, resetTokens } = useEditor.getState();
+  const changed = JSON.stringify(tokens) !== JSON.stringify(DEFAULT_TOKENS);
+
+  return (
+    <section>
+      <details className="tokens">
+        <summary className="section-title">Motion tokens</summary>
+        <p className="hint">
+          Shared by every animation in the project. Steps that use a token follow its value.
+        </p>
+        <div className="field">
+          <span>Durations, ms</span>
+          <div className="token-durations">
+            {Object.entries(tokens.durations).map(([name, ms]) => (
+              <NumberField
+                key={name}
+                label={name}
+                value={ms}
+                step={10}
+                onChange={(v) => setDurationToken(name, v)}
+              />
+            ))}
+          </div>
+        </div>
+        {Object.entries(tokens.easings).map(([name, easing]) => (
+          <div className="field token-easing" key={name}>
+            <span>{TOKEN_LABELS[name] ?? name}</span>
+            {easing.type === 'cubic-bezier' ? (
+              <div className="token-curve">
+                <CurveGlyph easing={easing} />
+                <div className="token-values">
+                  {(['x1', 'y1', 'x2', 'y2'] as const).map((k) => (
+                    <NumberField
+                      key={k}
+                      label={k}
+                      value={easing[k]}
+                      step={0.05}
+                      onChange={(v) => setEasingToken(name, { ...easing, [k]: v })}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : easing.type === 'spring' ? (
+              <>
+                <div className="token-values">
+                  {(['stiffness', 'damping', 'mass'] as const).map((k) => (
+                    <NumberField
+                      key={k}
+                      label={k}
+                      value={easing[k]}
+                      step={k === 'mass' ? 0.1 : 10}
+                      onChange={(v) => setEasingToken(name, { ...easing, [k]: v })}
+                    />
+                  ))}
+                </div>
+                <p className="hint">
+                  Settles in about {Math.round(resolveMotion(easing, 0, tokens).duration / 10) * 10}{' '}
+                  ms.
+                </p>
+              </>
+            ) : null}
+          </div>
+        ))}
+        <button type="button" className="button" disabled={!changed} onClick={resetTokens}>
+          Reset tokens
+        </button>
+      </details>
+    </section>
+  );
+}
+
+/** A small drawing of a cubic-bezier curve, time to the right, progress up. */
+function CurveGlyph({ easing }: { easing: Extract<Easing, { type: 'cubic-bezier' }> }) {
+  const { x1, y1, x2, y2 } = easing;
+  // y can overshoot (-1..2), so leave room above and below the unit square.
+  const y = (v: number) => 30 - v * 20;
+  return (
+    <svg className="curve-glyph" viewBox="-2 -12 24 54" width="28" height="42" aria-hidden="true">
+      <rect x="0" y="10" width="20" height="20" className="curve-box" />
+      <path d={`M0 ${y(0)} C${x1 * 20} ${y(y1)} ${x2 * 20} ${y(y2)} 20 ${y(1)}`} />
+    </svg>
+  );
 }

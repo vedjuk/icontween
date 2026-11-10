@@ -114,7 +114,8 @@ function StateStrip() {
       </button>
       {animation.states.length === 1 && (
         <p className="hint">
-          State A is the prepared icon. Clone it, then drag points in the new state.
+          State A is the prepared icon. Pick a purpose first (it sets the trigger, timing and
+          pattern), then clone A and drag points in the new state.
         </p>
       )}
     </div>

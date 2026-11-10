@@ -5,6 +5,7 @@
 import {
   addStateCopy,
   applyPattern,
+  applyPurposeDefaults,
   createAnimation,
   movePoint as movePointIn,
   prepareSvg,
@@ -12,18 +13,26 @@ import {
   setElementDelay,
   setElementSegments,
   setElementValues,
+  setDurationToken,
+  setEasingToken,
   setPivot as setPivotIn,
+  setPurpose,
   setSequencePath,
   setStepTiming,
   validateAnimation,
   type Animation,
+  type Easing,
   type ElementValuesPatch,
+  type MotionTokens,
   type PatternId,
   type PointRef,
+  type Purpose,
+  type ReducedMotion,
   type Sequence,
   type StepTimingPatch,
   type TriggerType,
 } from '@icontween/core';
+import { DEFAULT_TOKENS, type ReducedMotionPreference } from '@icontween/runtime';
 import { create } from 'zustand';
 import type { SourceIcon } from '../starters';
 
@@ -39,6 +48,10 @@ interface EditorState {
   point: PointRef | null;
   snap: boolean;
   onion: boolean;
+  /** Project motion tokens, shared by every animation (kept when another icon opens). */
+  tokens: MotionTokens;
+  /** How the preview treats reduced motion: like the OS, or forced either way. */
+  previewMotion: ReducedMotionPreference;
 
   open(source: SourceIcon): void;
   /** Adds a copy of the last state and starts editing it. */
@@ -65,6 +78,15 @@ interface EditorState {
   /** One element's delay in the selected step. */
   setDelay(elementId: string, ms: number): void;
   setTrigger(type: TriggerType): void;
+  /** Changes the purpose; parts still on the old defaults follow (see core's `setPurpose`). */
+  setPurpose(purpose: Purpose): void;
+  /** Puts trigger, pattern, timing and reduced motion back to the purpose's defaults. */
+  resetToPurposeDefaults(): void;
+  setReducedMotion(mode: ReducedMotion['mode']): void;
+  setDurationToken(name: string, ms: number): void;
+  setEasingToken(name: string, easing: Easing): void;
+  resetTokens(): void;
+  setPreviewMotion(preference: ReducedMotionPreference): void;
   setRepeat(repeat: Sequence['repeat'], restBetweenLoops?: number): void;
   setSnap(snap: boolean): void;
   setOnion(onion: boolean): void;
@@ -89,13 +111,17 @@ export const useEditor = create<EditorState>()((set, get) => ({
   point: null,
   snap: true,
   onion: true,
+  tokens: DEFAULT_TOKENS,
+  previewMotion: 'auto',
 
   open(source) {
     const result = prepareSvg(source.svg);
+    // A new icon keeps the purpose of the last one: designers tend to work on one kind.
+    const purpose = get().animation?.purpose;
     set({
       source,
       animation: result.ok
-        ? checked(createAnimation(result.icon, { id: source.id, name: source.label }))
+        ? checked(createAnimation(result.icon, { id: source.id, name: source.label, purpose }))
         : null,
       error: result.ok ? null : result.error,
       stateId: 'A',
@@ -194,6 +220,26 @@ export const useEditor = create<EditorState>()((set, get) => ({
     const { animation } = get();
     if (animation) set({ animation: { ...animation, trigger: { type } } });
   },
+
+  setPurpose(purpose) {
+    const { animation, stepIndex } = get();
+    if (animation) set(withSequence(setPurpose(animation, purpose), stepIndex));
+  },
+
+  resetToPurposeDefaults() {
+    const { animation, stepIndex } = get();
+    if (animation) set(withSequence(applyPurposeDefaults(animation), stepIndex));
+  },
+
+  setReducedMotion(mode) {
+    const { animation } = get();
+    if (animation) set({ animation: checked({ ...animation, reducedMotion: { mode } }) });
+  },
+
+  setDurationToken: (name, ms) => set({ tokens: setDurationToken(get().tokens, name, ms) }),
+  setEasingToken: (name, easing) => set({ tokens: setEasingToken(get().tokens, name, easing) }),
+  resetTokens: () => set({ tokens: DEFAULT_TOKENS }),
+  setPreviewMotion: (previewMotion) => set({ previewMotion }),
 
   setRepeat(repeat, restBetweenLoops) {
     const { animation } = get();

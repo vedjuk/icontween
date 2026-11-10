@@ -60,3 +60,13 @@
   to", stagger and per-element delay rows with timing bars. 147 core + 68 runtime tests,
   runtime unchanged. Decision 009. Next: M3 part 4 (purpose picker with defaults, motion
   tokens, reduced-motion setting).
+- **2026-11-10** — M3 part 4: purpose picker with defaults, motion tokens, reduced-motion
+  setting. Core `defaults.ts` (`PURPOSE_DEFAULTS`: trigger, timing, pattern, reduced motion
+  per purpose), `purpose.ts` (`setPurpose` keeps overrides and moves defaults,
+  `purposeOverrides`, `applyPurposeDefaults`) and `tokens.ts` (`setDurationToken`,
+  `setEasingToken`, clamped). New animations, first states and new steps follow the purpose
+  (Feedback: cloning A gives A→B→A). Editor: Purpose section with its defaults and what's
+  changed, "· default" marks in option lists, reduced-motion select, preview switch System /
+  Reduced / Full, editable Motion tokens panel (durations, curves with a glyph, springs with
+  settle time). 162 core + 68 runtime tests, runtime unchanged at 3.89 KB. Decision 010.
+  Next: M3 part 5 (preview panel options: sizes, stroke widths, light/dark), then undo/redo.

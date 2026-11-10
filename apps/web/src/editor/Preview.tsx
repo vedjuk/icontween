@@ -5,6 +5,7 @@
 import type { Animation } from '@icontween/core';
 import { createPlayer } from '@icontween/runtime';
 import { useEffect, useRef } from 'react';
+import { useEditor } from './store';
 
 const HINTS: Partial<Record<Animation['trigger']['type'], string>> = {
   hover: 'Hover or focus the tile',
@@ -14,7 +15,15 @@ const HINTS: Partial<Record<Animation['trigger']['type'], string>> = {
   appear: 'Played once when it came on screen. Edit to replay.',
 };
 
+const MOTION_OPTIONS = [
+  { id: 'auto', label: 'System' },
+  { id: 'reduce', label: 'Reduced' },
+  { id: 'no-preference', label: 'Full' },
+] as const;
+
 export function Preview({ animation }: { animation: Animation }) {
+  const tokens = useEditor((s) => s.tokens);
+  const previewMotion = useEditor((s) => s.previewMotion);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const svgRefs = useRef<(SVGSVGElement | null)[]>([]);
   const ready = animation.sequence.steps.length > 0;
@@ -27,10 +36,14 @@ export function Preview({ animation }: { animation: Animation }) {
       .map((svg) => {
         svg.replaceChildren(); // fresh paths for a fresh icon
         svg.removeAttribute('viewBox');
-        return createPlayer(svg, animation, { listenOn: button });
+        return createPlayer(svg, animation, {
+          listenOn: button,
+          tokens,
+          reducedMotion: previewMotion,
+        });
       });
     return () => players.forEach((p) => p.destroy());
-  }, [animation]);
+  }, [animation, tokens, previewMotion]);
 
   return (
     <section className="preview">
@@ -58,6 +71,30 @@ export function Preview({ animation }: { animation: Animation }) {
           ? (HINTS[animation.trigger.type] ?? 'Plays from code only')
           : 'Clone A into a new state to see motion.'}
       </p>
+      <div className="preview-motion">
+        <span className="hint" id="preview-motion-label">
+          Motion
+        </span>
+        <div className="segmented" role="group" aria-labelledby="preview-motion-label">
+          {MOTION_OPTIONS.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              aria-pressed={previewMotion === o.id}
+              onClick={() => useEditor.getState().setPreviewMotion(o.id)}
+              title={
+                o.id === 'auto'
+                  ? 'Follow this computer’s reduced-motion setting'
+                  : o.id === 'reduce'
+                    ? 'Preview as someone who asked for reduced motion'
+                    : 'Preview with full motion'
+              }
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

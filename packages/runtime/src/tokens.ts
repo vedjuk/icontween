@@ -1,6 +1,6 @@
-import type { Easing, Project } from '@icontween/core';
+import type { Easing, MotionTokens } from '@icontween/core';
 
-export type MotionTokens = Project['motionTokens'];
+export type { MotionTokens };
 
 /**
  * Default motion tokens. Initial values, to be tuned by hand (brief §17).

@@ -6,26 +6,29 @@
  * None of these change structure (rule 1): states are cloned whole, and point edits only
  * change numbers.
  */
+import { PURPOSE_DEFAULTS } from './defaults';
 import { segmentsBounds } from './geometry';
 import type { PreparedIcon } from './prepare';
 import { pathWithNewState, setSequencePath } from './sequence';
-import type { Animation, ElementState, ElementTransform, Segment, State } from './schema';
+import type { Animation, ElementState, ElementTransform, Purpose, Segment, State } from './schema';
 
 /** A fresh one-state animation from a prepared icon. The icon itself is not modified. */
 export function createAnimation(
   icon: PreparedIcon,
-  options: { id: string; name: string },
+  options: { id: string; name: string; purpose?: Purpose },
 ): Animation {
+  const purpose = options.purpose ?? 'state-change';
+  const defaults = PURPOSE_DEFAULTS[purpose];
   return {
     id: options.id,
     name: options.name,
-    purpose: 'state-change',
+    purpose,
     viewBox: [...icon.viewBox],
     elements: icon.elements.map((e) => ({ ...e, style: { ...e.style } })),
     states: [cloneState(icon.state, 'A')],
     sequence: { steps: [], repeat: 'once' },
-    trigger: { type: 'hover' },
-    reducedMotion: { mode: 'instant' },
+    trigger: { type: defaults.trigger },
+    reducedMotion: { mode: defaults.reducedMotion },
   };
 }
 
