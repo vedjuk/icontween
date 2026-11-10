@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import {
   addStateCopy,
@@ -20,7 +21,12 @@ import {
   createAnimation,
   editablePoints,
   encodeShare,
+  exportHtml,
+  exportJson,
+  exportReact,
   movePoint,
+  readAnimation,
+  resolveTokens,
   prepareSvg,
   setElementDelay,
   setElementSegments,
@@ -34,6 +40,7 @@ import {
   type Animation,
   type ElementState,
   type ElementValuesPatch,
+  type MotionTokens,
   type PreparedIcon,
   type Purpose,
   type Segment,
@@ -441,5 +448,70 @@ describe('starter set can be built with editor operations', () => {
     // The strip's "+ step" and target selects call setSequencePath.
     const a = setSequencePath(builds.heart!(), ['A', 'C', 'B', 'A']);
     expect(validateAnimation(a)).toEqual({ ok: true });
+  });
+});
+
+/** The runtime's default tokens (core doesn't depend on the runtime, so they're copied). */
+const TOKENS: MotionTokens = {
+  durations: { fast: 150, base: 250, slow: 400 },
+  easings: {
+    standard: { type: 'cubic-bezier', x1: 0.2, y1: 0, x2: 0, y2: 1 },
+    snappy: { type: 'cubic-bezier', x1: 0.3, y1: 0, x2: 0, y2: 1 },
+    'spring-gentle': { type: 'spring', stiffness: 170, damping: 26, mass: 1 },
+    'spring-snappy': { type: 'spring', stiffness: 400, damping: 28, mass: 1 },
+    'spring-bouncy': { type: 'spring', stiffness: 300, damping: 14, mass: 1 },
+  },
+};
+
+/** Stands in for the runtime in HTML exports; the runtime's own tests run the real one. */
+const RUNTIME = 'var IconTween = { createPlayer: function () {} };';
+
+describe('starter set exports (decision 016)', () => {
+  it.each(Object.keys(builds))('%s exports as JSON that reads back', (name) => {
+    const a = builds[name]!();
+    const data = JSON.parse(exportJson(a, TOKENS).text);
+    const read = readAnimation(data.animation);
+    expect(read).toEqual({ ok: true, value: resolveTokens(a, TOKENS) });
+    expect(JSON.stringify(data)).not.toContain('"token"');
+  });
+
+  it.each(Object.keys(builds))('%s exports as HTML with state A and its data', (name) => {
+    const a = builds[name]!();
+    const doc = new DOMParser().parseFromString(
+      exportHtml(a, TOKENS, { runtime: RUNTIME }).text,
+      'text/html',
+    );
+    const paths = [...doc.querySelectorAll('svg path')];
+    expect(paths.map((p) => p.getAttribute('data-icontween-element'))).toEqual(
+      a.elements.map((el) => el.id),
+    );
+    const scripts = [...doc.querySelectorAll('script')].map((el) => el.textContent!);
+    expect(scripts).toHaveLength(2);
+    // The start script runs against the stand-in runtime without throwing.
+    const run = new Function('IconTween', 'document', scripts[1]!);
+    const calls: unknown[][] = [];
+    run({ createPlayer: (...args: unknown[]) => calls.push(args) && { play() {} } }, doc);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]![0]).toBe(doc.querySelector('svg'));
+    expect(calls[0]![1]).toEqual(resolveTokens(a, TOKENS));
+  });
+
+  it.each(Object.keys(builds))('%s exports as a React component that compiles', (name) => {
+    const a = builds[name]!();
+    const file = exportReact(a, TOKENS);
+    const out = ts.transpileModule(file.text, {
+      fileName: file.fileName,
+      reportDiagnostics: true,
+      compilerOptions: { jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
+    });
+    expect(out.diagnostics ?? []).toEqual([]);
+    expect(file.text.match(/<path\b/g)).toHaveLength(a.elements.length);
+  });
+
+  it('copy-check exports stay the same (review the snapshot when they change)', () => {
+    const a = builds['copy-check']!();
+    expect(exportJson(a, TOKENS).text).toMatchSnapshot('json');
+    expect(exportHtml(a, TOKENS, { runtime: RUNTIME }).text).toMatchSnapshot('html');
+    expect(exportReact(a, TOKENS).text).toMatchSnapshot('react');
   });
 });

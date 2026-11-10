@@ -31,19 +31,9 @@ export function iconToSvg(
   const lines = elements.map((el) => {
     const es = stateElements[el.id];
     if (!es) throw new Error(`State has no values for element "${el.id}"`);
-    const attrs: [string, string][] = [['d', segmentsToD(es.segments)]];
-    attrs.push(['fill', el.style.fill], ['stroke', el.style.stroke]);
-    for (const key of ['strokeWidth', 'strokeLinecap', 'strokeLinejoin'] as const) {
-      attrs.push([KEBAB[key]!, String(el.style[key])]);
-    }
-    const transform = transformAttribute(es);
-    if (transform) attrs.push(['transform', transform]);
-    const paint = paintAttributes(es);
-    for (const key of ['opacity', 'pathLength', 'strokeDasharray', 'strokeDashoffset'] as const) {
-      const value = paint[key];
-      if (value !== undefined) attrs.push([PAINT_NAMES[key], value]);
-    }
-    const body = attrs.map(([k, v]) => `${k}="${escape(v)}"`).join(' ');
+    const body = pathAttributes(el, es)
+      .map(([k, v]) => `${k}="${escape(v)}"`)
+      .join(' ');
     return `${indent}<path ${body} />`;
   });
   return [
@@ -51,6 +41,26 @@ export function iconToSvg(
     ...lines,
     '</svg>',
   ].join('\n');
+}
+
+/**
+ * The attributes of one element's <path> in one state, in a fixed order: geometry, style,
+ * transform, then opacity and draw. Shared by previews and exports.
+ */
+export function pathAttributes(el: PreparedElement, es: ElementState): [string, string][] {
+  const attrs: [string, string][] = [['d', segmentsToD(es.segments)]];
+  attrs.push(['fill', el.style.fill], ['stroke', el.style.stroke]);
+  for (const key of ['strokeWidth', 'strokeLinecap', 'strokeLinejoin'] as const) {
+    attrs.push([KEBAB[key]!, String(el.style[key])]);
+  }
+  const transform = transformAttribute(es);
+  if (transform) attrs.push(['transform', transform]);
+  const paint = paintAttributes(es);
+  for (const key of ['opacity', 'pathLength', 'strokeDasharray', 'strokeDashoffset'] as const) {
+    const value = paint[key];
+    if (value !== undefined) attrs.push([PAINT_NAMES[key], value]);
+  }
+  return attrs;
 }
 
 const PAINT_NAMES = {

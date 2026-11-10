@@ -7,7 +7,11 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./bundle": {
+      "types": "./scripts/bundle.d.ts",
+      "default": "./scripts/bundle.js"
+    }
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",

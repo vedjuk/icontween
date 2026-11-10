@@ -17,6 +17,7 @@ import { STARTER_SOURCES, type SourceIcon } from '../starters';
 import { askConfirm, DialogHost } from '../ui/Dialog';
 import { Canvas } from './Canvas';
 import './editor.css';
+import { ExportButton } from './ExportButton';
 import { Inspector } from './Inspector';
 import { useEditor } from './store';
 
@@ -116,6 +117,7 @@ export function EditorPage() {
             <div className="editor-title-row">
               <h1 className="editor-title">{animation.name}</h1>
               <ShareButton />
+              <ExportButton animation={animation} />
               {saved[animation.id] && <StartOver />}
             </div>
             <Canvas />

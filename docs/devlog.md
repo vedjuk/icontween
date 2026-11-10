@@ -112,3 +112,15 @@
   replace asks (Cancel keeps yours), cut-off link refused, fresh load and pasted link.
   234 core + 68 runtime tests. Decision 015.
   Next: exports (SVG + SMIL, SVG + runtime, React, JSON).
+- **2026-11-10** — M4 part 3: exports. Core `export/`: `exportHtml` (inline SVG in state A +
+  the runtime inline + start call; opens from disk), `exportReact` (typed `forwardRef`
+  component importing `./icontween`, ref handle, `listenOn`), `exportJson`, tokens resolved
+  to values, readable `printData`, `measureExport`. Runtime `scripts/bundle.js` builds the
+  shipped runtime (unminified, licence banner; `iife` for HTML, `es` as icontween.js) from
+  the preview's source, served to the editor as `virtual:icontween-runtime`; hand-written
+  `icontween.d.ts` guarded by a type test. "Export code" dialog: format switch, code,
+  size + gzipped, Copy, Download, Download runtime, and the HTML export running in an
+  iframe. Checked: exported page plays in the dialog; React exports pass the strict Vite
+  template typecheck, build, and play (copy, menu toggle, bell from its ref); jsdom test
+  plays an exported page incl. reduced motion. 297 core + 73 runtime tests. Decision 016.
+  Next: SVG + SMIL export, then the cross-browser check.
