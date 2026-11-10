@@ -124,3 +124,18 @@
   template typecheck, build, and play (copy, menu toggle, bell from its ref); jsdom test
   plays an exported page incl. reduced motion. 297 core + 73 runtime tests. Decision 016.
   Next: SVG + SMIL export, then the cross-browser check.
+- **2026-11-10** — M4 part 4: SVG + SMIL export, no JavaScript. Core `export/svg.ts`:
+  `exportSvg` rebuilds the runtime's timeline as keyframes (one `<animate>` per value per
+  pass; keySplines for curves, adaptive samples for springs and overshoot; loop/ping-pong
+  as one repeating cycle; a timer per direction), plus a reduced-motion copy behind a
+  `prefers-reduced-motion` media query. All six triggers inline; loop and appear also as
+  `<img>`. Core keeps a copy of the easing math (`export/easing.ts`), tested equal to the
+  runtime's. Starter builds moved to `core/test/starters.ts` so the runtime can test
+  against them: `runtime/test/smil.test.ts` evaluates the exported SMIL and compares it
+  with the player at sample times (12 starters, full and reduced motion, both directions,
+  plus spring/overshoot/ping-pong/draw variants). Export dialog: "SVG (no JS)" with a
+  which-triggers table and the file playing inline and as `<img>`, plus Replay. Found in
+  the browser: Chrome reads `-` in `begin="id.event"` as an offset, so ids are camelCase.
+  Checked in the preview (Chrome): click, toggle, hover inline; loop and appear as
+  `<img>`; reduced copy. 310 core + 112 runtime tests. Decision 017.
+  Next: cross-browser check of every export (Safari, Chrome, Firefox).

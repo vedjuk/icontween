@@ -1,15 +1,19 @@
 /**
- * "Export code": the open animation as HTML + runtime, a React component or JSON, ready to
- * copy or download (decision 016). The code comes from core's exporters; the runtime is
- * the same build the preview runs (rule 9), loaded only when the dialog opens.
+ * "Export code": the open animation as HTML + runtime, a React component, SVG + SMIL or
+ * JSON, ready to copy or download (decisions 016, 017). The code comes from core's
+ * exporters; the runtime is the same build the preview runs (rule 9), loaded only when the
+ * dialog opens. The SVG export plays without it, so its preview shows the file itself.
  */
 import {
   exportHtml,
   exportJson,
   exportReact,
+  exportSvg,
   formatBytes,
   measureExport,
   reducedMotionSummary,
+  SVG_TRIGGER_SUPPORT,
+  svgTriggerSummary,
   triggerSummary,
   type Animation,
   type ExportFile,
@@ -19,11 +23,12 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useEditor } from './store';
 
-type Format = 'html' | 'react' | 'json';
+type Format = 'html' | 'react' | 'svg' | 'json';
 
 const FORMATS: { id: Format; label: string }[] = [
   { id: 'html', label: 'HTML + runtime' },
   { id: 'react', label: 'React' },
+  { id: 'svg', label: 'SVG (no JS)' },
   { id: 'json', label: 'JSON' },
 ];
 
@@ -34,6 +39,10 @@ const ABOUT: Record<Format, string> = {
   react:
     'A typed component. Put it next to icontween.js and icontween.d.ts (the runtime, one ' +
     'copy for all your icons) and import it like any component.',
+  svg:
+    'One .svg file that animates with SMIL, no JavaScript. Paste the <svg> into a page, or ' +
+    'use the file as an <img> or CSS background. Loop and appear play everywhere; the other ' +
+    'triggers need the SVG inline.',
   json: 'The animation data, for playing it with the runtime yourself: createPlayer(svg, data.animation).',
 };
 
@@ -83,6 +92,7 @@ function ExportPanel({ animation, onClose }: { animation: Animation; onClose: ()
   const [runtime, setRuntime] = useState<Runtime | null>(null);
   const [size, setSize] = useState<ExportSize | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [replays, setReplays] = useState(0);
   const code = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
@@ -158,14 +168,26 @@ function ExportPanel({ animation, onClose }: { animation: Animation; onClose: ()
       <p>{ABOUT[format]}</p>
       <ul className="export-facts">
         <li>
-          {triggerSummary(animation)}
-          {format === 'json' ? '' : ' Every trigger works in this format.'}
+          {format === 'svg' ? svgTriggerSummary(animation) : triggerSummary(animation)}
+          {format === 'json' || format === 'svg' ? '' : ' Every trigger works in this format.'}
         </li>
         <li>{reducedMotionSummary(animation)}</li>
         {empty && (
           <li>There’s no motion yet: add a state and a step, or this exports a still icon.</li>
         )}
       </ul>
+
+      {format === 'svg' && <SvgTriggerTable current={animation.trigger.type} />}
+
+      {format === 'svg' && file && (
+        <iframe
+          key={replays}
+          className="export-try"
+          title="The exported SVG, inline and as an image"
+          sandbox=""
+          srcDoc={svgPreviewPage(exportSvg(animation, tokens, { size: 48 }).text)}
+        />
+      )}
 
       {format === 'html' && file && (
         <iframe
@@ -196,6 +218,16 @@ function ExportPanel({ animation, onClose }: { animation: Animation; onClose: ()
         <span className="share-copied" role="status">
           {status}
         </span>
+        {format === 'svg' && (
+          <button
+            type="button"
+            className="button"
+            onClick={() => setReplays((n) => n + 1)}
+            title="Reload the preview, to see loop and appear start again"
+          >
+            Replay
+          </button>
+        )}
         {format === 'react' && (
           <button
             type="button"
@@ -234,7 +266,69 @@ function makeFile(
 ): ExportFile {
   if (format === 'html') return exportHtml(animation, tokens, { runtime: runtime.runtimeIife });
   if (format === 'react') return exportReact(animation, tokens);
+  if (format === 'svg') return exportSvg(animation, tokens);
   return exportJson(animation, tokens);
+}
+
+/** Where each trigger plays in the SVG export, with this icon's trigger marked. */
+function SvgTriggerTable({ current }: { current: Animation['trigger']['type'] }) {
+  return (
+    <table className="export-triggers">
+      <caption>Which triggers work</caption>
+      <thead>
+        <tr>
+          <th scope="col">Trigger</th>
+          <th scope="col">Inline &lt;svg&gt;</th>
+          <th scope="col">As &lt;img&gt;</th>
+          <th scope="col">Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {SVG_TRIGGER_SUPPORT.map((s) => (
+          <tr key={s.trigger} aria-current={s.trigger === current ? 'true' : undefined}>
+            <th scope="row">
+              {s.trigger}
+              {s.trigger === current && <span className="export-triggers-this"> · this icon</span>}
+            </th>
+            <td>{s.inline ? 'Yes' : 'No'}</td>
+            <td>{s.image ? 'Yes' : 'First state'}</td>
+            <td>{s.note}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/**
+ * A page showing the exported SVG twice: inline (its trigger works there) and as an <img>
+ * (only loop and appear play). Shown in a sandboxed iframe without scripts: SMIL needs none.
+ */
+function svgPreviewPage(svg: string): string {
+  const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root { color-scheme: light dark; font: 12px/1.4 system-ui, sans-serif; }
+      body { display: flex; justify-content: center; gap: 48px; margin: 0; padding: 16px; }
+      figure { display: grid; justify-items: center; gap: 8px; margin: 0; }
+      figcaption { color: GrayText; }
+      .image { padding: 4px; border-radius: 6px; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <figure>
+      ${svg}
+      <figcaption>Inline: try the trigger</figcaption>
+    </figure>
+    <figure>
+      <img class="image" src="${src}" width="48" height="48" alt="" />
+      <figcaption>As &lt;img&gt;: black, on white</figcaption>
+    </figure>
+  </body>
+</html>`;
 }
 
 function download(file: ExportFile) {

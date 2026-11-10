@@ -629,3 +629,144 @@ export const CopyIcon = forwardRef<CopyIconHandle, CopyIconProps>(function CopyI
 });
 "
 `;
+
+exports[`starter set exports as SVG + SMIL (decision 017) > copy-check SVG stays the same (review the snapshot when it changes) > svg 1`] = `
+"<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+  width="24"
+  height="24"
+>
+  <!--
+    copy, an animated icon made with IconTween (https://icontween.com).
+    SVG with SMIL animation: no JavaScript needed.
+    It plays on click when the SVG is inline in a page. As an <img> it shows its first state.
+    Reduced motion: when the OS asks for less motion, it jumps to each state without moving.
+  -->
+  <style>
+    /* Reduced motion: when the OS asks for less motion, the second group shows instead. */
+    .copy-reduced {
+      display: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .copy-motion {
+        display: none;
+      }
+      .copy-reduced {
+        display: inline;
+      }
+    }
+  </style>
+
+  <g class="copy-motion">
+    <!-- el-1 -->
+    <path
+      d="M10 8 L20 8 C21.105 8 22 8.895 22 10 L22 20 C22 21.105 21.105 22 20 22 L10 22 C8.895 22 8 21.105 8 20 L8 10 C8 8.895 8.895 8 10 8 Z"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <animate
+        attributeName="d"
+        begin="copyPlay.begin"
+        dur="1500ms"
+        fill="freeze"
+        calcMode="spline"
+        keyTimes="0; 0.1667; 0.8333; 1"
+        keySplines="0.3 0 0 1; 0 0 1 1; 0.3 0 0 1"
+        values="
+          M10 8 L20 8 C21.105 8 22 8.895 22 10 L22 20 C22 21.105 21.105 22 20 22 L10 22 C8.895 22 8 21.105 8 20 L8 10 C8 8.895 8.895 8 10 8 Z;
+          M4 12 L9 17 C9 17 9 17 9 17 L20 6 C20 6 20 6 20 6 L9 17 C9 17 9 17 9 17 L4 12 C4 12 4 12 4 12 Z;
+          M4 12 L9 17 C9 17 9 17 9 17 L20 6 C20 6 20 6 20 6 L9 17 C9 17 9 17 9 17 L4 12 C4 12 4 12 4 12 Z;
+          M10 8 L20 8 C21.105 8 22 8.895 22 10 L22 20 C22 21.105 21.105 22 20 22 L10 22 C8.895 22 8 21.105 8 20 L8 10 C8 8.895 8.895 8 10 8 Z
+        "
+      />
+    </path>
+    <!-- el-2 -->
+    <path
+      d="M4 16 C2.9 16 2 15.1 2 14 L2 4 C2 2.9 2.9 2 4 2 L14 2 C15.1 2 16 2.9 16 4"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <animate
+        attributeName="opacity"
+        begin="copyPlay.begin"
+        dur="1500ms"
+        fill="freeze"
+        calcMode="spline"
+        keyTimes="0; 0.1667; 0.8333; 1"
+        keySplines="0.3 0 0 1; 0 0 1 1; 0.3 0 0 1"
+        values="1; 0; 0; 1"
+      />
+    </path>
+  </g>
+
+  <!-- With reduced motion: jumps to each state without moving, played once. -->
+  <g class="copy-reduced">
+    <!-- el-1 -->
+    <path
+      d="M10 8 L20 8 C21.105 8 22 8.895 22 10 L22 20 C22 21.105 21.105 22 20 22 L10 22 C8.895 22 8 21.105 8 20 L8 10 C8 8.895 8.895 8 10 8 Z"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <animate
+        attributeName="d"
+        begin="copyPlay.begin"
+        dur="500ms"
+        fill="freeze"
+        keyTimes="0; 0; 0.5; 0.5; 1"
+        values="
+          M10 8 L20 8 C21.105 8 22 8.895 22 10 L22 20 C22 21.105 21.105 22 20 22 L10 22 C8.895 22 8 21.105 8 20 L8 10 C8 8.895 8.895 8 10 8 Z;
+          M4 12 L9 17 C9 17 9 17 9 17 L20 6 C20 6 20 6 20 6 L9 17 C9 17 9 17 9 17 L4 12 C4 12 4 12 4 12 Z;
+          M4 12 L9 17 C9 17 9 17 9 17 L20 6 C20 6 20 6 20 6 L9 17 C9 17 9 17 9 17 L4 12 C4 12 4 12 4 12 Z;
+          M10 8 L20 8 C21.105 8 22 8.895 22 10 L22 20 C22 21.105 21.105 22 20 22 L10 22 C8.895 22 8 21.105 8 20 L8 10 C8 8.895 8.895 8 10 8 Z;
+          M10 8 L20 8 C21.105 8 22 8.895 22 10 L22 20 C22 21.105 21.105 22 20 22 L10 22 C8.895 22 8 21.105 8 20 L8 10 C8 8.895 8.895 8 10 8 Z
+        "
+      />
+    </path>
+    <!-- el-2 -->
+    <path
+      d="M4 16 C2.9 16 2 15.1 2 14 L2 4 C2 2.9 2.9 2 4 2 L14 2 C15.1 2 16 2.9 16 4"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <animate
+        attributeName="opacity"
+        begin="copyPlay.begin"
+        dur="500ms"
+        fill="freeze"
+        keyTimes="0; 0; 0.5; 0.5; 1"
+        values="1; 0; 0; 1; 1"
+      />
+    </path>
+  </g>
+
+  <!-- Where a click counts: the whole icon, not only its strokes. -->
+  <rect id="copyHit" x="0" y="0" width="24" height="24" fill="none" pointer-events="all" cursor="pointer" />
+
+  <!-- Timers: every animation above starts with one of these. -->
+  <rect width="0" height="0" fill="none">
+    <animate
+      id="copyPlay"
+      attributeName="x"
+      values="0; 0"
+      begin="copyHit.click"
+      dur="1500ms"
+      restart="whenNotActive"
+      fill="freeze"
+    />
+  </rect>
+</svg>
+"
+`;
