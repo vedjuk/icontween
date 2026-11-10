@@ -125,7 +125,7 @@ describe('readAnimation', () => {
   it('reports problems instead of throwing', () => {
     expect(readAnimation(null)).toEqual({
       ok: false,
-      error: 'The project is damaged at animation: expected an object.',
+      error: 'The animation is damaged at animation: expected an object.',
     });
   });
 });

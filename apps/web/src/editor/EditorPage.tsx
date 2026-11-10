@@ -1,10 +1,18 @@
-import { matchPattern, nextStateId, patternTemplates, sequencePath } from '@icontween/core';
-import { useEffect } from 'react';
+import {
+  matchPattern,
+  nextStateId,
+  patternTemplates,
+  sequencePath,
+  shareCodeFromHash,
+} from '@icontween/core';
+import { useEffect, useRef } from 'react';
 import { Library } from '../library/Library';
 import { useLibrary } from '../library/useLibrary';
 import '../prepare/prepare.css';
 import { ProjectMenu } from '../project/ProjectMenu';
 import { useSaveStatus } from '../project/persistence';
+import { openShareLink } from '../project/share';
+import { ShareButton } from '../project/ShareButton';
 import { STARTER_SOURCES, type SourceIcon } from '../starters';
 import { askConfirm, DialogHost } from '../ui/Dialog';
 import { Canvas } from './Canvas';
@@ -44,10 +52,36 @@ export function EditorPage() {
     if (icon) open(icon);
   };
 
+  /**
+   * Opens a share link in the hash, if there is one. The long hash is then swapped for the
+   * icon's id, whether the link opened or not.
+   */
+  const openFromHash = async () => {
+    const code = shareCodeFromHash(location.hash);
+    if (code === null) return false;
+    history.replaceState(null, '', location.pathname);
+    await openShareLink(code);
+    const id = useEditor.getState().source?.id;
+    if (id) history.replaceState(null, '', `#${id}`);
+    return true;
+  };
+
+  // StrictMode runs effects twice in development; the first open must happen once.
+  const started = useRef(false);
   useEffect(() => {
-    if (!useEditor.getState().source) {
-      openFirst(location.hash.slice(1), useSaveStatus.getState().openId);
+    if (!started.current) {
+      started.current = true;
+      void (async () => {
+        const wasLink = await openFromHash();
+        if (!useEditor.getState().source) {
+          openFirst(wasLink ? undefined : location.hash.slice(1), useSaveStatus.getState().openId);
+        }
+      })();
     }
+    // A link pasted into this tab's address bar only changes the hash.
+    const onHash = () => void openFromHash();
+    addEventListener('hashchange', onHash);
+    return () => removeEventListener('hashchange', onHash);
     // Runs once, after the saved project has loaded (see main.tsx).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -81,6 +115,7 @@ export function EditorPage() {
           <main className="editor-main">
             <div className="editor-title-row">
               <h1 className="editor-title">{animation.name}</h1>
+              <ShareButton />
               {saved[animation.id] && <StartOver />}
             </div>
             <Canvas />

@@ -11,3 +11,4 @@ export * from './purpose';
 export * from './tokens';
 export * from './history';
 export * from './project';
+export * from './share';

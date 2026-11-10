@@ -101,3 +101,14 @@
   `.icontween.json`. Checked in the browser: reload keeps work, damaged file refused,
   export → import round trip. 210 core + 68 runtime tests. Decision 014.
   Next: share links in the URL hash.
+- **2026-11-10** — M4 part 2: share links. Core `share.ts`: `encodeShare` / `decodeShare`
+  (JSON → deflate-raw via `CompressionStream` → base64url in `#a=…`, no dependency; unpacking
+  capped at 2 MB) and `readSharedAnimation` with the same checks as Import. A link carries
+  the animation, the token values it uses, and the SVG for non-starter icons. Editor:
+  "Share link" next to the title (dialog with Copy link and the link's length, warning over
+  8,000 characters); opening a link adds the animation, asks before replacing a different
+  one or retiming other animations, and swaps the hash for `#<icon id>`. Starter links are
+  600–1,250 characters. Checked in the browser: copy, own link opens without asking,
+  replace asks (Cancel keeps yours), cut-off link refused, fresh load and pasted link.
+  234 core + 68 runtime tests. Decision 015.
+  Next: exports (SVG + SMIL, SVG + runtime, React, JSON).

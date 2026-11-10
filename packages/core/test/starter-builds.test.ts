@@ -19,6 +19,7 @@ import {
   applyPattern,
   createAnimation,
   editablePoints,
+  encodeShare,
   movePoint,
   prepareSvg,
   setElementDelay,
@@ -27,6 +28,8 @@ import {
   setPivot,
   setSequencePath,
   setStepTiming,
+  shareAnimation,
+  SHARE_LINK_WARN_LENGTH,
   validateAnimation,
   type Animation,
   type ElementState,
@@ -411,6 +414,11 @@ describe('starter set can be built with editor operations', () => {
     expect(validateAnimation(a)).toEqual({ ok: true });
     expect(a.states.length).toBeGreaterThanOrEqual(2);
     expect(a.sequence.steps.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it.each(Object.keys(builds))('%s fits in a share link', async (name) => {
+    const code = await encodeShare(shareAnimation(builds[name]!(), { durations: {}, easings: {} }));
+    expect(code.length).toBeLessThan(SHARE_LINK_WARN_LENGTH);
   });
 
   it.each(looksLike)('%s state %s looks like %s', (name, state, icon) => {

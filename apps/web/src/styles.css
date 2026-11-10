@@ -175,6 +175,37 @@ body {
   gap: 0.5rem;
 }
 
+.share-dialog {
+  width: min(32rem, calc(100vw - 2rem));
+}
+
+.share-link-field {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font:
+    0.75rem/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+
+.app-dialog p.share-link-size {
+  margin: 0.375rem 0 1.25rem;
+  font-size: 0.75rem;
+}
+
+.share-copied {
+  margin-right: auto;
+  align-self: center;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
 .button.is-primary {
   border-color: var(--accent);
   background: var(--accent);

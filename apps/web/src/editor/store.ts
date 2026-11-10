@@ -97,6 +97,11 @@ interface EditorState {
   discard(): void;
   /** Replaces the project's animations and tokens (after loading or importing). */
   loadProject(project: { animations: Animation[]; tokens: MotionTokens }): void;
+  /**
+   * Adds an animation from a share link to the project (replacing any with its id) and
+   * opens it. `tokens`, when given, replace the project's tokens. Not undoable.
+   */
+  openShared(source: SourceIcon, animation: Animation, tokens?: MotionTokens): void;
   /** Adds a copy of the last state and starts editing it. */
   addState(): void;
   /** Edits a state, and selects the first step into it if there is one. */
@@ -230,6 +235,14 @@ export const useEditor = create<EditorState>()((set, get) => {
         error: null,
         history: emptyHistory(),
       });
+    },
+
+    openShared(source, animation, tokens) {
+      set((s) => ({
+        saved: { ...s.saved, [animation.id]: checked(animation) },
+        tokens: tokens ?? s.tokens,
+      }));
+      get().open(source);
     },
 
     addState() {

@@ -89,18 +89,65 @@ export function readProject(raw: unknown): ReadResult<Project> {
     );
     return { ok: true, value: project };
   } catch (e) {
-    if (e instanceof ReadError) return { ok: false, error: e.message };
-    throw e;
+    return damaged(e, 'project');
   }
 }
 
-/** Reads one animation (a share link, the animation JSON export). */
+/** Reads one animation (the animation JSON export). */
 export function readAnimation(raw: unknown): ReadResult<Animation> {
   try {
     return { ok: true, value: readAnimationOrThrow(raw, 'animation') };
   } catch (e) {
-    if (e instanceof ReadError) return { ok: false, error: e.message };
-    throw e;
+    return damaged(e, 'animation');
+  }
+}
+
+/**
+ * What a share link carries: one animation, the values of the motion tokens it uses (so it
+ * plays as it did for the person who shared it), and the source icon when it isn't one of
+ * the app's built-in starters.
+ */
+export interface SharedAnimation {
+  schemaVersion: number;
+  animation: Animation;
+  tokens: MotionTokens;
+  icon?: { fileName: string; svg: string };
+}
+
+/** Reads a share link's decoded JSON, with the same checks as a project file. */
+export function readSharedAnimation(raw: unknown): ReadResult<SharedAnimation> {
+  if (!isRecord(raw) || !('schemaVersion' in raw) || !('animation' in raw)) {
+    return { ok: false, error: "This link doesn't hold an IconTween animation." };
+  }
+  const version = raw.schemaVersion;
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
+    return { ok: false, error: "This link doesn't hold an IconTween animation." };
+  }
+  if (version > SCHEMA_VERSION) {
+    return {
+      ok: false,
+      error: `This link was made by a newer version of IconTween (schema ${version}). Reload the app to get the latest version.`,
+    };
+  }
+  try {
+    // Migrations work on projects, so the animation goes through one.
+    const migrated = migrate({ schemaVersion: version, animations: [raw.animation] }, version);
+    const animation = readAnimationOrThrow(arr(migrated.animations, 'animation')[0], 'animation');
+    const shared: SharedAnimation = {
+      schemaVersion: SCHEMA_VERSION,
+      animation,
+      tokens: readTokens(raw.tokens, 'tokens'),
+    };
+    if (raw.icon !== undefined) {
+      const icon = obj(raw.icon, 'icon');
+      shared.icon = {
+        fileName: str(icon.fileName, 'icon.fileName'),
+        svg: str(icon.svg, 'icon.svg'),
+      };
+    }
+    return { ok: true, value: shared };
+  } catch (e) {
+    return damaged(e, 'link');
   }
 }
 
@@ -112,8 +159,7 @@ function migrate(raw: Record<string, unknown>, version: number): Record<string, 
   const steps: Record<number, (p: Record<string, unknown>) => Record<string, unknown>> = {};
   let project = raw;
   for (let v = version; v < SCHEMA_VERSION; v++) {
-    const step = steps[v];
-    if (!step) throw new ReadError(`No migration from schema ${v}`);
+    const step = steps[v] ?? fail('schemaVersion', `no migration from schema ${v}`);
     project = step(project);
   }
   return project;
@@ -123,11 +169,25 @@ function migrate(raw: Record<string, unknown>, version: number): Record<string, 
 
 class ReadError extends Error {
   override name = 'ReadError';
+  constructor(
+    readonly path: string,
+    readonly detail: string,
+  ) {
+    super(`${path}: ${detail}`);
+  }
 }
 
 const fail = (path: string, message: string): never => {
-  throw new ReadError(`The project is damaged at ${path}: ${message}.`);
+  throw new ReadError(path, message);
 };
+
+/** Turns a ReadError into a result that says what was being read; rethrows anything else. */
+function damaged(e: unknown, what: string): { ok: false; error: string } {
+  if (e instanceof ReadError) {
+    return { ok: false, error: `The ${what} is damaged at ${e.path}: ${e.detail}.` };
+  }
+  throw e;
+}
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);

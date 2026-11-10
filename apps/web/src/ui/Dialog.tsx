@@ -14,6 +14,7 @@ interface Request {
   /** Label of the button that goes ahead; no cancel button when this is a message. */
   confirmLabel: string;
   cancel: boolean;
+  cancelLabel?: string;
   resolve: (ok: boolean) => void;
 }
 
@@ -30,6 +31,8 @@ export function askConfirm(options: {
   title: string;
   message: string;
   confirmLabel: string;
+  /** Defaults to "Cancel". */
+  cancelLabel?: string;
 }): Promise<boolean> {
   return open({ ...options, cancel: true });
 }
@@ -78,7 +81,7 @@ export function DialogHost() {
           <div className="app-dialog-buttons">
             {request.cancel && (
               <button type="button" className="button" onClick={() => answer(false)}>
-                Cancel
+                {request.cancelLabel ?? 'Cancel'}
               </button>
             )}
             <button type="submit" className="button is-primary" autoFocus={!request.cancel}>
