@@ -190,3 +190,13 @@
   SMIL export, switched to looping so they play as an `<img>` on GitHub (`pnpm readme-hero`).
   Badges: CI, MIT, runtime 4 KB gzipped, no backend. A live-site badge waits for the URL.
   The hero GIF left the shot list; three GIFs remain.
+- **2026-11-10** — M5 part 4: accessibility pass on the app UI (WCAG 2.1 AA, light and dark).
+  The canvas has a keyboard path: Tab to it, then `[` / `]` for points, Shift for elements,
+  arrows to nudge, Esc to step back, with the same ‹ › stepper in the Inspector. Arrow keys
+  no longer move the selected element while a button elsewhere has focus. Focus stays put
+  after rename, delete, a welcome pick and Start over. The editor has a skip link. Imports,
+  save problems and toggle tiles are announced. Contrast fixes: filled buttons, grey text on
+  grey fills, and field borders. There's one vermilion focus ring, and pointer cursors are
+  consistent (disabled controls no longer look clickable). `apps/web` has tests now (19).
+  Decision 021.
+  Next: record the GIFs, add the live link, and a VoiceOver pass by the owner.

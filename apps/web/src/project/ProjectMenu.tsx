@@ -49,8 +49,10 @@ export function ProjectMenu({ onImported }: { onImported: (project: Project) => 
 
   return (
     <div className="project-menu">
-      <span className={`save-status is-${status}`} role="status">
-        {STATUS[status]}
+      <span className={`save-status is-${status}`}>{STATUS[status]}</span>
+      {/* Only a problem is announced: "Saving…" after every edit would talk over the work. */}
+      <span className="visually-hidden" role="status">
+        {status === 'unavailable' ? STATUS.unavailable : ''}
       </span>
       <label className="button file-button" title={`Open an ${PROJECT_FILE_EXTENSION} file`}>
         Import

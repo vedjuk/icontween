@@ -7,7 +7,7 @@
  */
 import type { Animation } from '@icontween/core';
 import { createPlayer } from '@icontween/runtime';
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useEditor, type PreviewTheme } from './store';
 
 const SIZES = [48, 24, 16] as const;
@@ -58,6 +58,13 @@ export function Preview({ animation }: { animation: Animation }) {
   // Options are on a 24-unit grid; other viewBoxes scale them so they look the same.
   const unitsPer24 = animation.viewBox[2] / 24;
 
+  // A toggle tile says whether it's on. The players start over (off) whenever these change,
+  // so "on" only counts for the ones it was set with.
+  const players = [animation, tokens, previewMotion];
+  const [toggled, setToggled] = useState<{ for: unknown[]; on: boolean }>({ for: [], on: false });
+  const pressed = toggled.on && players.every((p, i) => p === toggled.for[i]);
+  const isToggle = ready && animation.trigger.type === 'toggle';
+
   useEffect(() => {
     const button = buttonRef.current;
     if (!button) return;
@@ -91,6 +98,10 @@ export function Preview({ animation }: { animation: Animation }) {
         data-stroke={previewStroke === null ? undefined : ''}
         style={tileStyle}
         aria-label={`Preview of ${animation.name}`}
+        aria-describedby="preview-hint"
+        {...(isToggle
+          ? { 'aria-pressed': pressed, onClick: () => setToggled({ for: players, on: !pressed }) }
+          : {})}
       >
         {SIZES.map((size, i) => (
           <span key={size} className="preview-size">
@@ -108,7 +119,7 @@ export function Preview({ animation }: { animation: Animation }) {
           </span>
         ))}
       </button>
-      <p className="hint">
+      <p className="hint" id="preview-hint">
         {ready
           ? (HINTS[animation.trigger.type] ?? 'Plays from code only')
           : 'Clone A into a new state to see motion.'}

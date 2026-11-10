@@ -2,13 +2,15 @@
  * The icon library sidebar: add SVG files, paste code, drop files anywhere on the page,
  * and pick from your icons or the starter set. Shared by the prepare screen and the editor.
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MaskedSvg } from '../prepare/MaskedSvg';
 import { STARTER_SOURCES, type SourceIcon } from '../starters';
 import { checkIcon } from './iconCheck';
+import { importAnnouncement, importSummary } from './importSummary';
 import { useLibraryStore, type ImportResult } from './libraryStore';
 import { deleteIcon, renameIcon } from './manage';
 import type { useLibrary } from './useLibrary';
+import { focusFirst, focusIsLost } from '../ui/focus';
 
 type LibraryApi = ReturnType<typeof useLibrary>;
 
@@ -56,6 +58,7 @@ export function Library({
         <p className="hint">Or drop SVG files anywhere on the page. Several at once is fine.</p>
       </section>
 
+      <ImportAnnouncer />
       <ImportReport onSelect={onSelect} icons={userIcons} />
 
       {userIcons.length > 0 && (
@@ -109,6 +112,19 @@ export function FilePicker({
   );
 }
 
+/**
+ * Says what an import did. A live region only speaks when its text changes, and one that
+ * appears together with its text is often missed, so this one is always in the page.
+ */
+function ImportAnnouncer() {
+  const results = useLibraryStore((s) => s.lastImport);
+  return (
+    <p className="visually-hidden" role="status">
+      {results ? importAnnouncement(results) : ''}
+    </p>
+  );
+}
+
 /** What the last drop, pick or paste did, file by file, until dismissed. */
 function ImportReport({
   icons,
@@ -119,18 +135,10 @@ function ImportReport({
 }) {
   const results = useLibraryStore((s) => s.lastImport);
   if (!results) return null;
-  const added = results.filter((r) => r.status === 'added').length;
-  const summary =
-    results.length === 1
-      ? added === 1
-        ? 'Added'
-        : 'Couldn’t add'
-      : added === results.length
-        ? `Added all ${results.length} files`
-        : `Added ${added} of ${results.length} files`;
+  const summary = importSummary(results);
 
   return (
-    <section className="import-report" aria-live="polite" aria-label="Import result">
+    <section className="import-report" aria-label="Import result">
       <div className="import-report-header">
         <h2 className="section-title">{summary}</h2>
         <button
@@ -284,6 +292,14 @@ function IconRow({
   onSelect: (icon: SourceIcon) => void;
 }) {
   const [renaming, setRenaming] = useState(false);
+  const itemRef = useRef<HTMLButtonElement>(null);
+  const wasRenaming = useRef(false);
+  // After renaming (Enter or Esc), focus goes back to the row instead of the page. Leaving the
+  // field by clicking elsewhere keeps focus where the click put it.
+  useEffect(() => {
+    if (!renaming && wasRenaming.current && focusIsLost()) focusFirst(itemRef.current);
+    wasRenaming.current = renaming;
+  }, [renaming]);
   const check = checkIcon(icon.svg);
   const problem = check.ok
     ? check.notes.length > 0
@@ -309,6 +325,7 @@ function IconRow({
   return (
     <li className={`icon-row${selected ? ' is-selected' : ''}`}>
       <button
+        ref={itemRef}
         type="button"
         className="icon-item"
         aria-current={selected ? 'true' : undefined}
@@ -347,7 +364,7 @@ function IconRow({
             className="icon-action"
             aria-label={`Delete ${icon.label}`}
             title="Delete"
-            onClick={() => void deleteIcon(icon)}
+            onClick={(e) => void deleteAndKeepFocus(icon, e.currentTarget)}
           >
             <ActionIcon d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
           </button>
@@ -355,6 +372,26 @@ function IconRow({
       )}
     </li>
   );
+}
+
+/**
+ * Deletes after asking, then moves focus to the next icon in the list (or the one before,
+ * the section heading, or Add SVG files when it was the last of your icons).
+ */
+async function deleteAndKeepFocus(icon: SourceIcon, button: HTMLElement) {
+  const row = button.closest('li');
+  const item = (li: Element | null | undefined) =>
+    li?.querySelector<HTMLButtonElement>('.icon-item') ?? null;
+  const candidates = [
+    item(row?.nextElementSibling),
+    item(row?.previousElementSibling),
+    row?.closest('details')?.querySelector('summary'),
+  ];
+  if (!(await deleteIcon(icon))) return;
+  requestAnimationFrame(() => {
+    if (!focusIsLost()) return;
+    focusFirst(...candidates, document.querySelector<HTMLElement>('.add-icons input[type=file]'));
+  });
 }
 
 /** Open or closed sections are a per-browser convenience: storage may be missing or blocked. */

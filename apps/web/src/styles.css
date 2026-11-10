@@ -1,16 +1,22 @@
 :root {
   --bg: #fbfbfa;
   --fg: #18181b;
-  --muted: #71717a;
+  /* AA (4.5:1) on every grey fill, including --selected. */
+  --muted: #67676f;
   /* Vermilion. --accent-text is a deeper shade for small text (AA on --bg). */
   --accent: #d9432a;
   --accent-text: #c23a22;
   --surface: #ffffff;
   --border: #e4e4e7;
+  /* Text fields and selects: 3:1 against the page, so you can see where to type. */
+  --control-border: #8e8e96;
+  /* Filled buttons: white text at AA in both themes. */
+  --primary: #c23a22;
+  --primary-hover: #a8321d;
   --subtle: #f4f4f5;
   --selected: #e9e9eb;
   /* Select chevron (a background image can't use currentColor): --muted. */
-  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%2367676f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   --grid: rgba(24, 24, 27, 0.07);
   --overlay-original: #a1a1aa;
   font-family:
@@ -35,6 +41,7 @@
     --accent-text: #ff6b4e;
     --surface: #18181b;
     --border: #2e2e33;
+    --control-border: #71717a;
     --subtle: #1f1f23;
     --selected: #2a2a2f;
     --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23a1a1aa' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -49,6 +56,31 @@
 
 body {
   margin: 0;
+}
+
+/* One focus ring for every control, for keyboard focus only. Components may move it. */
+:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* Everything you can click shows it; nothing disabled pretends to be clickable. */
+select,
+summary,
+label.checkbox,
+input[type='checkbox'],
+input[type='radio'],
+input[type='range'] {
+  cursor: pointer;
+}
+
+/* body raises it above component rules such as `.segmented button`. */
+body :is(button, select, input):disabled {
+  cursor: default;
+}
+
+.button:disabled {
+  opacity: 0.5;
 }
 
 /* Native selects put the arrow almost against the border; ours sits inset like the text. */
@@ -129,7 +161,7 @@ select {
   box-sizing: border-box;
   width: 100%;
   padding: 0.375rem 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 6px;
   background: var(--bg);
   color: var(--fg);
@@ -153,14 +185,14 @@ select {
 }
 
 .button.is-primary {
-  border-color: var(--accent);
-  background: var(--accent);
+  border-color: var(--primary);
+  background: var(--primary);
   color: #fff;
 }
 
-.button.is-primary:hover {
-  border-color: var(--accent-text);
-  background: var(--accent-text);
+.button.is-primary:hover:not(:disabled) {
+  border-color: var(--primary-hover);
+  background: var(--primary-hover);
 }
 
 /* Export dialog (editor/ExportButton.tsx) */
@@ -271,4 +303,24 @@ select {
 .export-triggers-this {
   color: var(--accent-text);
   font-weight: normal;
+}
+
+/* Skip link: hidden until it has keyboard focus. */
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 10;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: none;
 }

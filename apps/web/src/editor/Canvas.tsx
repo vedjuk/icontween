@@ -15,6 +15,8 @@ import {
   type State,
 } from '@icontween/core';
 import { useEffect, useRef } from 'react';
+import { canvasKeyAction, isCanvasKeyTarget } from './canvasKeys';
+import { describeSelection, stepElement, stepPoint } from './selection';
 import { useEditor } from './store';
 
 /** Canvas size in CSS pixels. */
@@ -168,7 +170,8 @@ export function Canvas() {
     if (drag.current?.id === e.pointerId) drag.current = null;
   };
 
-  useNudgeKeys();
+  useCanvasKeys();
+  const status = useEditor(() => describeSelection());
 
   const gridLines = [];
   for (let x = Math.ceil(minX); x <= minX + w; x++) {
@@ -179,108 +182,121 @@ export function Canvas() {
   }
 
   return (
-    <svg
-      ref={svgRef}
-      className="canvas"
-      width={SIZE}
-      height={SIZE}
-      viewBox={box.join(' ')}
-      onPointerDown={() => selectElement(null)}
-      onPointerMove={onMove}
-      onPointerUp={endMove}
-      onPointerCancel={endMove}
-      role="application"
-      aria-label={`Canvas, editing state ${state.id}`}
-    >
-      <rect className="canvas-artboard" x={minX} y={minY} width={w} height={h} />
-      <g className="canvas-grid">{gridLines}</g>
+    <>
+      <svg
+        ref={svgRef}
+        className="canvas"
+        width={SIZE}
+        height={SIZE}
+        viewBox={box.join(' ')}
+        onPointerDown={() => selectElement(null)}
+        onPointerMove={onMove}
+        onPointerUp={endMove}
+        onPointerCancel={endMove}
+        // Focusable, so its keys work (canvasKeys.ts). role="application" passes the arrow
+        // keys through screen readers to the canvas.
+        tabIndex={0}
+        role="application"
+        aria-label={`Canvas, editing state ${state.id}`}
+        aria-describedby="canvas-keys"
+      >
+        <rect className="canvas-artboard" x={minX} y={minY} width={w} height={h} />
+        <g className="canvas-grid">{gridLines}</g>
 
-      {onion && previous && (
-        <g className="canvas-onion" aria-hidden="true">
-          {animation.elements.map((el) => (
-            <ElementPath key={el.id} es={previous.elements[el.id]!} style={el.style} />
-          ))}
-        </g>
-      )}
-
-      {animation.elements.map((el) => (
-        <g key={el.id} className={el.id === elementId ? 'canvas-selected' : undefined}>
-          <ElementPath es={state.elements[el.id]!} style={el.style} />
-          {/* A wider invisible stroke makes thin lines easy to click. */}
-          <path
-            className="canvas-hit"
-            d={segmentsToD(state.elements[el.id]!.segments)}
-            transform={transformAttribute(state.elements[el.id]!) || undefined}
-            strokeWidth={Math.max(el.style.strokeWidth, 12 * unit)}
-            pointerEvents={el.style.fill === 'none' ? 'stroke' : 'all'}
-            onPointerDown={(e) => {
-              if (el.id !== elementId) selectElement(el.id);
-              startMove(e, 'element', state.elements[el.id]!);
-            }}
-          />
-        </g>
-      ))}
-
-      {selected && (
-        <g aria-hidden="true">
-          {/* The full outline, so a faded or undrawn element can still be found. */}
-          <path
-            className="canvas-guide"
-            d={segmentsToD(selected.segments)}
-            transform={transformAttribute(selected) || undefined}
-          />
-          <g
-            className="canvas-pivot"
-            transform={`translate(${selected.transform.translateX + selected.transform.originX} ${selected.transform.translateY + selected.transform.originY})`}
-            onPointerDown={(e) => startMove(e, 'pivot', selected)}
-          >
-            <title>Pivot: drag to move</title>
-            {/* Grabbed by a ring, so a point lying under the pivot can still be dragged. */}
-            <circle r={8.5 * unit} strokeWidth={6 * unit} className="canvas-pivot-hit" />
-            <circle r={4.5 * unit} />
-            <line x1={-8 * unit} x2={8 * unit} y1={0} y2={0} />
-            <line y1={-8 * unit} y2={8 * unit} x1={0} x2={0} />
+        {onion && previous && (
+          <g className="canvas-onion" aria-hidden="true">
+            {animation.elements.map((el) => (
+              <ElementPath key={el.id} es={previous.elements[el.id]!} style={el.style} />
+            ))}
           </g>
-        </g>
-      )}
+        )}
 
-      {selected && (
-        <g
-          ref={groupRef}
-          className="canvas-nodes"
-          transform={transformAttribute(selected) || undefined}
-          onPointerMove={onDrag}
-          onPointerUp={endDrag}
-          onPointerCancel={endDrag}
-        >
-          {editablePoints(selected.segments).map((p) => {
-            const ref = { segment: p.segment, role: p.role };
-            const active = samePoint(point, ref);
-            const isHandle = p.role !== 'anchor';
-            return (
-              <g key={`${p.segment}-${p.role}`}>
-                {isHandle && p.anchorX !== undefined && (
-                  <line
-                    className="canvas-handle-line"
-                    x1={p.anchorX}
-                    y1={p.anchorY}
-                    x2={p.x}
-                    y2={p.y}
+        {animation.elements.map((el) => (
+          <g key={el.id} className={el.id === elementId ? 'canvas-selected' : undefined}>
+            <ElementPath es={state.elements[el.id]!} style={el.style} />
+            {/* A wider invisible stroke makes thin lines easy to click. */}
+            <path
+              className="canvas-hit"
+              d={segmentsToD(state.elements[el.id]!.segments)}
+              transform={transformAttribute(state.elements[el.id]!) || undefined}
+              strokeWidth={Math.max(el.style.strokeWidth, 12 * unit)}
+              pointerEvents={el.style.fill === 'none' ? 'stroke' : 'all'}
+              onPointerDown={(e) => {
+                if (el.id !== elementId) selectElement(el.id);
+                startMove(e, 'element', state.elements[el.id]!);
+              }}
+            />
+          </g>
+        ))}
+
+        {selected && (
+          <g aria-hidden="true">
+            {/* The full outline, so a faded or undrawn element can still be found. */}
+            <path
+              className="canvas-guide"
+              d={segmentsToD(selected.segments)}
+              transform={transformAttribute(selected) || undefined}
+            />
+            <g
+              className="canvas-pivot"
+              transform={`translate(${selected.transform.translateX + selected.transform.originX} ${selected.transform.translateY + selected.transform.originY})`}
+              onPointerDown={(e) => startMove(e, 'pivot', selected)}
+            >
+              <title>Pivot: drag to move</title>
+              {/* Grabbed by a ring, so a point lying under the pivot can still be dragged. */}
+              <circle r={8.5 * unit} strokeWidth={6 * unit} className="canvas-pivot-hit" />
+              <circle r={4.5 * unit} />
+              <line x1={-8 * unit} x2={8 * unit} y1={0} y2={0} />
+              <line y1={-8 * unit} y2={8 * unit} x1={0} x2={0} />
+            </g>
+          </g>
+        )}
+
+        {selected && (
+          <g
+            ref={groupRef}
+            className="canvas-nodes"
+            transform={transformAttribute(selected) || undefined}
+            onPointerMove={onDrag}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+          >
+            {editablePoints(selected.segments).map((p) => {
+              const ref = { segment: p.segment, role: p.role };
+              const active = samePoint(point, ref);
+              const isHandle = p.role !== 'anchor';
+              return (
+                <g key={`${p.segment}-${p.role}`}>
+                  {isHandle && p.anchorX !== undefined && (
+                    <line
+                      className="canvas-handle-line"
+                      x1={p.anchorX}
+                      y1={p.anchorY}
+                      x2={p.x}
+                      y2={p.y}
+                    />
+                  )}
+                  <circle
+                    className={`canvas-node${isHandle ? ' is-handle' : ''}${active ? ' is-active' : ''}`}
+                    cx={p.x}
+                    cy={p.y}
+                    r={(isHandle ? 3.5 : 5) * unit}
+                    onPointerDown={(e) => startDrag(e, ref, selected)}
                   />
-                )}
-                <circle
-                  className={`canvas-node${isHandle ? ' is-handle' : ''}${active ? ' is-active' : ''}`}
-                  cx={p.x}
-                  cy={p.y}
-                  r={(isHandle ? 3.5 : 5) * unit}
-                  onPointerDown={(e) => startDrag(e, ref, selected)}
-                />
-              </g>
-            );
-          })}
-        </g>
-      )}
-    </svg>
+                </g>
+              );
+            })}
+          </g>
+        )}
+      </svg>
+      <p id="canvas-keys" className="visually-hidden">
+        Right and left bracket select the next and previous point, with Shift the next and previous
+        element. Arrow keys nudge, Shift for larger steps. Escape steps back.
+      </p>
+      <p className="visually-hidden" aria-live="polite">
+        {status}
+      </p>
+    </>
   );
 }
 
@@ -304,15 +320,13 @@ function ElementPath({ es, style }: { es: ElementState; style: ElementStyle }) {
   );
 }
 
-/**
- * Arrow keys nudge the selected point, or the selected element when no point is selected:
- * 0.1, or 1 with Shift. Escape steps back a level.
- */
-function useNudgeKeys() {
+/** The canvas's keys (canvasKeys.ts), while the canvas or nothing in particular has focus. */
+function useCanvasKeys() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select')) return;
+      if (!isCanvasKeyTarget(e.target as Element | null, document.body)) return;
+      const action = canvasKeyAction(e);
+      if (!action) return;
       const {
         animation,
         stateId,
@@ -323,35 +337,31 @@ function useNudgeKeys() {
         selectPoint,
         selectElement,
       } = useEditor.getState();
-      if (e.key === 'Escape') {
+      if (!animation) return;
+      if (action.type === 'back') {
         if (point) selectPoint(null);
-        else selectElement(null);
-        return;
+        else if (elementId) selectElement(null);
+        else return;
+      } else if (action.type === 'element') {
+        stepElement(action.step);
+      } else if (action.type === 'point') {
+        stepPoint(action.step);
+      } else {
+        const es = elementId
+          ? animation.states.find((s) => s.id === stateId)?.elements[elementId]
+          : undefined;
+        if (!es) return;
+        if (point) {
+          const at = getPoint(es.segments, point);
+          movePoint(point, at.x + action.dx, at.y + action.dy);
+        } else {
+          const { translateX, translateY } = es.transform;
+          setValues({
+            transform: { translateX: translateX + action.dx, translateY: translateY + action.dy },
+          });
+        }
       }
-      const dirs: Record<string, [number, number]> = {
-        ArrowLeft: [-1, 0],
-        ArrowRight: [1, 0],
-        ArrowUp: [0, -1],
-        ArrowDown: [0, 1],
-      };
-      const dir = dirs[e.key];
-      if (!dir || !elementId || !animation) return;
-      const es = animation.states.find((s) => s.id === stateId)?.elements[elementId];
-      if (!es) return;
       e.preventDefault();
-      const step = e.shiftKey ? 1 : 0.1;
-      if (!point) {
-        const { translateX, translateY } = es.transform;
-        setValues({
-          transform: {
-            translateX: translateX + dir[0] * step,
-            translateY: translateY + dir[1] * step,
-          },
-        });
-        return;
-      }
-      const at = getPoint(es.segments, point);
-      movePoint(point, at.x + dir[0] * step, at.y + dir[1] * step);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

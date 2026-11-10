@@ -3,7 +3,6 @@ import {
   PURPOSE_DEFAULTS,
   REDUCED_MOTION_MODES,
   elementOffsets,
-  getPoint,
   patternTemplates,
   pivotPresets,
   purposeOverrides,
@@ -22,9 +21,8 @@ import {
 } from '@icontween/core';
 import { DEFAULT_TOKENS, resolveDuration, resolveMotion } from '@icontween/runtime';
 import { Preview } from './Preview';
+import { POINT_ROLE_LABEL, pointsOf, selectedPointIndex, stepPoint } from './selection';
 import { useEditor } from './store';
-
-const ROLE_LABEL = { anchor: 'Point', c1: 'Handle (out)', c2: 'Handle (in)' } as const;
 
 const EASINGS: { id: string; label: string; easing: Easing }[] = [
   { id: 'standard', label: 'Standard', easing: { type: 'token', name: 'standard' } },
@@ -91,10 +89,9 @@ export function Inspector() {
   const stateId = useEditor((s) => s.stateId);
   const stepIndex = useEditor((s) => s.stepIndex);
   const elementId = useEditor((s) => s.elementId);
-  const point = useEditor((s) => s.point);
   const snap = useEditor((s) => s.snap);
   const onion = useEditor((s) => s.onion);
-  const { selectElement, movePoint, setTrigger, setRepeat, setSnap, setOnion, setReducedMotion } =
+  const { selectElement, setTrigger, setRepeat, setSnap, setOnion, setReducedMotion } =
     useEditor.getState();
   const { repeat, restBetweenLoops = 0 } = animation.sequence;
   const defaults = PURPOSE_DEFAULTS[animation.purpose];
@@ -102,7 +99,6 @@ export function Inspector() {
   const state = animation.states.find((s) => s.id === stateId)!;
   const step = animation.sequence.steps[stepIndex];
   const segments = elementId ? state.elements[elementId]?.segments : undefined;
-  const at = point && segments ? getPoint(segments, point) : null;
 
   return (
     <aside className="inspector" aria-label="Inspector">
@@ -132,29 +128,7 @@ export function Inspector() {
         <ElementValues animation={animation} stateId={stateId} elementId={elementId} />
       )}
 
-      {point && at && (
-        <section>
-          <h2 className="section-title">{ROLE_LABEL[point.role]}</h2>
-          <div className="xy">
-            {(['x', 'y'] as const).map((axis) => (
-              <label key={axis} className="field-inline">
-                <span>{axis.toUpperCase()}</span>
-                <input
-                  type="number"
-                  step={0.1}
-                  value={at[axis]}
-                  onChange={(e) => {
-                    const v = e.target.valueAsNumber;
-                    if (!Number.isFinite(v)) return;
-                    movePoint(point, axis === 'x' ? v : at.x, axis === 'y' ? v : at.y);
-                  }}
-                />
-              </label>
-            ))}
-          </div>
-          <p className="hint">Arrow keys nudge 0.1, Shift + arrow 1.</p>
-        </section>
-      )}
+      {elementId && segments && <PointSection />}
 
       {step && <StepTiming animation={animation} index={stepIndex} step={step} />}
 
@@ -245,6 +219,72 @@ export function Inspector() {
         </label>
       </section>
     </aside>
+  );
+}
+
+/**
+ * The selected element's points, one at a time: ‹ › step through them (like `[` and `]` on
+ * the canvas), and X and Y place the selected one exactly.
+ */
+function PointSection() {
+  const point = useEditor((s) => s.point);
+  // Re-render on edits too, so X and Y follow drags and nudges.
+  useEditor((s) => s.animation);
+  const { elementId, movePoint } = useEditor.getState();
+  const points = pointsOf(elementId);
+  const index = selectedPointIndex();
+  const at = point && index >= 0 ? points[index]! : null;
+
+  return (
+    <section>
+      <h2 className="section-title">{at ? POINT_ROLE_LABEL[at.role] : 'Points'}</h2>
+      <div className="point-stepper" role="group" aria-label="Points">
+        <button
+          type="button"
+          className="button"
+          aria-label="Previous point"
+          title="Previous point ([ on the canvas)"
+          onClick={() => stepPoint(-1)}
+        >
+          ‹
+        </button>
+        <span className="point-count">
+          {at ? `${index + 1} of ${points.length}` : `${points.length} points`}
+        </span>
+        <button
+          type="button"
+          className="button"
+          aria-label="Next point"
+          title="Next point (] on the canvas)"
+          onClick={() => stepPoint(1)}
+        >
+          ›
+        </button>
+      </div>
+      {point && at && (
+        <div className="xy">
+          {(['x', 'y'] as const).map((axis) => (
+            <label key={axis} className="field-inline">
+              <span>{axis.toUpperCase()}</span>
+              <input
+                type="number"
+                step={0.1}
+                value={at[axis]}
+                onChange={(e) => {
+                  const v = e.target.valueAsNumber;
+                  if (!Number.isFinite(v)) return;
+                  movePoint(point, axis === 'x' ? v : at.x, axis === 'y' ? v : at.y);
+                }}
+              />
+            </label>
+          ))}
+        </div>
+      )}
+      <p className="hint">
+        On the focused canvas: [ and ] pick points, Shift + [ ] elements, arrow keys nudge 0.1
+        (Shift 1), Esc steps back.
+      </p>
+    </section>
   );
 }
 
@@ -493,8 +533,8 @@ function ElementValues({
         Reset {name} in {stateId}
       </button>
       <p className="hint">
-        Drag the element to move it, the cross to move its pivot. Arrow keys nudge it when no point
-        is selected.
+        Drag the element to move it, the cross to move its pivot. On the focused canvas, arrow keys
+        nudge it when no point is selected.
       </p>
     </section>
   );

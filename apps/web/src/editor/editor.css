@@ -20,6 +20,11 @@
   min-width: 0;
 }
 
+/* Where the skip link lands: the ring sits inside the area. */
+.editor-main:focus-visible {
+  outline-offset: -2px;
+}
+
 .editor-title {
   align-self: stretch;
   margin: 0;
@@ -194,18 +199,14 @@
 
 .sequence-step[aria-pressed='true'] {
   border-color: var(--accent);
+  /* 2px in all, so the selected step doesn't rely on its colour alone. */
+  box-shadow: inset 0 0 0 1px var(--accent);
   color: var(--accent-text);
 }
 
 .sequence-step:focus-visible {
   outline: 2px solid var(--accent-text);
   outline-offset: 1px;
-}
-
-.sequence-strip .button:disabled,
-.undo-buttons .button:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 /* Inspector */
@@ -231,7 +232,7 @@
 .inspector input[type='number'] {
   font: inherit;
   padding: 0.3125rem 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 6px;
   background-color: var(--surface);
   color: var(--fg);
@@ -739,4 +740,24 @@
 .welcome-starters button:focus-visible {
   outline: 2px solid var(--accent-text);
   outline-offset: 2px;
+}
+
+/* Inspector: stepping through points (decision 021) */
+
+.point-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+}
+
+.point-stepper .button {
+  min-width: 2rem;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+}
+
+.point-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }

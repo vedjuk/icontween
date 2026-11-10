@@ -17,6 +17,7 @@ import { ShareButton } from '../project/ShareButton';
 import { STARTER_SOURCES, type SourceIcon } from '../starters';
 import { STEPS } from '../steps';
 import { askConfirm, DialogHost } from '../ui/Dialog';
+import { restoreFocusTo } from '../ui/focus';
 import { Canvas } from './Canvas';
 import './editor.css';
 import { ExportButton } from './ExportButton';
@@ -89,6 +90,18 @@ export function EditorPage() {
   return (
     <div className={`editor${library.dragging ? ' is-dragging' : ''}`} {...library.dropTarget}>
       <header className="prepare-header">
+        {/* About 30 library controls come before the canvas; this jumps over them. */}
+        <a
+          className="skip-link"
+          href="#editor-main"
+          onClick={(e) => {
+            // The hash names the open icon, so move focus without changing it.
+            e.preventDefault();
+            document.getElementById('editor-main')?.focus();
+          }}
+        >
+          Skip to the editor
+        </a>
         <a href="/" className="wordmark" aria-label="IconTween home">
           <span className="wordmark-icon">icon</span>
           <span className="wordmark-tween">tween</span>
@@ -112,9 +125,12 @@ export function EditorPage() {
 
       {animation ? (
         <>
-          <main className="editor-main">
+          <main className="editor-main" id="editor-main" tabIndex={-1}>
             <div className="editor-title-row">
-              <h1 className="editor-title">{animation.name}</h1>
+              {/* Focus lands here when the control you used goes away (ui/focus.ts). */}
+              <h1 className="editor-title" id="editor-title" tabIndex={-1}>
+                {animation.name}
+              </h1>
               <ShareButton />
               <ExportButton animation={animation} />
               {saved[animation.id] && <StartOver />}
@@ -126,7 +142,7 @@ export function EditorPage() {
           <Inspector />
         </>
       ) : (
-        <main className="editor-main editor-empty">
+        <main className="editor-main editor-empty" id="editor-main" tabIndex={-1}>
           {error ? (
             <div className="error" role="alert">
               <h1>{source?.label}</h1>
@@ -177,7 +193,14 @@ function Welcome({
         <ul>
           {STARTER_SOURCES.map((icon) => (
             <li key={icon.id}>
-              <button type="button" onClick={() => onOpen(icon)}>
+              <button
+                type="button"
+                onClick={() => {
+                  onOpen(icon);
+                  // The welcome (and this button) goes away: continue from the editor's title.
+                  restoreFocusTo('editor-title');
+                }}
+              >
                 <Thumb svg={checkIcon(icon.svg).svg} size={24} />
                 <span>{icon.label}</span>
               </button>
@@ -204,7 +227,11 @@ function StartOver() {
             'prepared icon. This can’t be undone.',
           confirmLabel: 'Start over',
         });
-        if (ok) useEditor.getState().discard();
+        if (ok) {
+          useEditor.getState().discard();
+          // This button goes away with the animation: continue from the title.
+          restoreFocusTo('editor-title');
+        }
       }}
     >
       Start over

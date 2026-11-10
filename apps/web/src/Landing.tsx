@@ -220,6 +220,10 @@ function StarterCard({ animation, link }: { animation: Animation; link?: string 
   const tileRef = useRef<HTMLButtonElement & HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const playerRef = useRef<Player | null>(null);
+  // Toggle tiles say whether they're on, like any toggle button. The runtime flips the icon
+  // on every click; this follows it.
+  const [pressed, setPressed] = useState(false);
+  const hintId = `hint-${animation.id}`;
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -245,10 +249,15 @@ function StarterCard({ animation, link }: { animation: Animation; link?: string 
       <Tile
         ref={tileRef}
         className="landing-tile"
-        {...(interactive ? { type: 'button' as const, 'aria-label': title } : {})}
+        {...(interactive
+          ? { type: 'button' as const, 'aria-label': title, 'aria-describedby': hintId }
+          : {})}
+        {...(trigger === 'toggle'
+          ? { 'aria-pressed': pressed, onClick: () => setPressed((p) => !p) }
+          : {})}
       >
         <svg ref={svgRef} className="landing-icon" aria-hidden="true" />
-        <span className="landing-tile-hint">
+        <span className="landing-tile-hint" id={hintId}>
           {HINTS[trigger]}
           {trigger === 'appear' && (
             <>

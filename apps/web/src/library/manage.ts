@@ -14,8 +14,11 @@ export function renameIcon(id: string, label: string) {
   useEditor.getState().renameIcon(id, name);
 }
 
-/** Asks first: the source SVG and any animation of it are gone for good. */
-export async function deleteIcon(icon: SourceIcon) {
+/**
+ * Asks first: the source SVG and any animation of it are gone for good. Resolves true when
+ * the icon was deleted.
+ */
+export async function deleteIcon(icon: SourceIcon): Promise<boolean> {
   const animated = icon.id in useEditor.getState().saved;
   const ok = await askConfirm({
     title: `Delete ${icon.label}?`,
@@ -24,7 +27,7 @@ export async function deleteIcon(icon: SourceIcon) {
       : 'The icon is removed from this project. This can’t be undone.',
     confirmLabel: 'Delete',
   });
-  if (!ok) return;
+  if (!ok) return false;
   useLibraryStore.getState().remove(icon.id);
   useEditor.getState().forgetIcon(icon.id);
   const { lastImport, setImport } = useLibraryStore.getState();
@@ -33,4 +36,5 @@ export async function deleteIcon(icon: SourceIcon) {
     setImport(rest.length > 0 ? rest : null);
   }
   if (location.hash === `#${icon.id}`) history.replaceState(null, '', location.pathname);
+  return true;
 }
