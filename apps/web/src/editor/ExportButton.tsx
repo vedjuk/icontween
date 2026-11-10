@@ -189,14 +189,7 @@ function ExportPanel({ animation, onClose }: { animation: Animation; onClose: ()
         />
       )}
 
-      {format === 'html' && file && (
-        <iframe
-          className="export-try"
-          title="The exported page, running"
-          sandbox="allow-scripts"
-          srcDoc={file.text}
-        />
-      )}
+      {format === 'html' && file && <ExportedPage html={file.text} />}
 
       <pre ref={code} className="export-code" tabIndex={0} aria-label="Exported code">
         {text ?? 'Loading the runtime…'}
@@ -297,6 +290,37 @@ function SvgTriggerTable({ current }: { current: Animation['trigger']['type'] })
         ))}
       </tbody>
     </table>
+  );
+}
+
+const PREVIEW_READY = 'icontween-export-preview-ready';
+
+/**
+ * Plays the HTML + runtime file as exported. A srcdoc frame would inherit the site's CSP,
+ * which blocks the file's inline scripts, so the frame loads /export-preview.html (its own
+ * policy, no network) and the file is sent to it once it's ready (decision 022).
+ */
+function ExportedPage({ html }: { html: string }) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const target = frame.current?.contentWindow;
+      if (!target || event.source !== target || event.data !== PREVIEW_READY) return;
+      // The sandboxed frame's origin is opaque, so '*' is the only target that reaches it.
+      target.postMessage(html, '*');
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [html]);
+  return (
+    <iframe
+      key={html}
+      ref={frame}
+      className="export-try"
+      title="The exported page, running"
+      sandbox="allow-scripts"
+      src="/export-preview.html"
+    />
   );
 }
 

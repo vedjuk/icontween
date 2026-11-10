@@ -200,3 +200,16 @@
   consistent (disabled controls no longer look clickable). `apps/web` has tests now (19).
   Decision 021.
   Next: record the GIFs, add the live link, and a VoiceOver pass by the owner.
+- **2026-11-10** — M5 part 5: ready to deploy. Hosting was never set up at M0, so there was
+  nothing to check. Added `wrangler.jsonc`: an assets-only Cloudflare Worker serving
+  `apps/web/dist`, with SPA fallback for `/editor` and the other paths. The custom domain
+  is set in the dashboard, so deploys never touch DNS. `_headers` gained long caching for
+  `/assets/*`. Testing the build with the real headers found that Export code's HTML +
+  runtime preview didn't play: its `srcdoc` frame inherited the CSP, which blocks inline
+  scripts. It now plays in `/export-preview.html`, a sandboxed page with its own
+  inline-only, no-network policy. That was checked in Chrome and Firefox, and the app keeps
+  its strict CSP. Social preview tags and `og-image.png` (built by
+  `docs/media/og-image.swift`). README: live link and live badge. Decision 022. Decision 023
+  proposes how exported toggles could tell screen readers their state (not built).
+  Next: the owner connects Cloudflare and the domain, then checks the live site. Then the
+  GIFs and the VoiceOver pass.

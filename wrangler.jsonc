@@ -1,0 +1,14 @@
+// Cloudflare deploy for icontween.com (decision 022). An assets-only Worker: no Worker code, so
+// nothing runs on the server, only static files from the production build (rule 5).
+{
+  "name": "icontween",
+  "compatibility_date": "2026-11-10",
+  "assets": {
+    // Built by `pnpm build`.
+    "directory": "./apps/web/dist",
+    // /editor, /prepare, /runtime and any unknown path get index.html with 200; main.tsx
+    // picks the page from the path.
+    "not_found_handling": "single-page-application",
+  },
+  // The custom domain is added in the Cloudflare dashboard, so deploys never touch DNS.
+}

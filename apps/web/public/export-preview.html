@@ -1,0 +1,33 @@
+<!doctype html>
+<!--
+  Where Export code plays the HTML + runtime file (decision 022). The site's CSP blocks inline
+  scripts, and a srcdoc frame inherits it, so the export couldn't run there. This page is
+  served without that header (see _headers) and brings its own policy: inline scripts and
+  styles run, nothing loads from anywhere. The editor frames it with sandbox="allow-scripts"
+  and sends it the file; it writes the file over itself, so what runs is the file as exported.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:"
+    />
+    <title>Export preview</title>
+    <script>
+      let written = false;
+      addEventListener('message', (event) => {
+        // Only the editor's sandboxed frame: our origin is opaque ('null') only when sandboxed,
+        // so another site framing this page can't run its scripts as icontween.com.
+        if (written || self.origin !== 'null') return;
+        if (event.origin !== location.origin || event.source !== parent) return;
+        if (typeof event.data !== 'string') return;
+        written = true;
+        document.open();
+        document.write(event.data);
+        document.close();
+      });
+      parent.postMessage('icontween-export-preview-ready', '*');
+    </script>
+  </head>
+</html>
