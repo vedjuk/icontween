@@ -10,6 +10,7 @@ import { Library } from '../library/Library';
 import { useLibrary } from '../library/useLibrary';
 import { STARTER_SOURCES, type SourceIcon } from '../starters';
 import { Compare, type CompareMode } from './Compare';
+import { DialogHost } from '../ui/Dialog';
 import { MaskedSvg } from './MaskedSvg';
 import './prepare.css';
 
@@ -28,7 +29,8 @@ export function PreparePage() {
   const [mode, setMode] = useState<CompareMode>('overlay');
   const [showGrid, setShowGrid] = useState(true);
   const library = useLibrary((icon) => setSelectedId(icon.id));
-  const selected = library.all.find((i) => i.id === selectedId);
+  // A deleted icon falls back to the first starter.
+  const selected = library.all.find((i) => i.id === selectedId) ?? STARTER_SOURCES[0];
 
   return (
     <div className={`prepare${library.dragging ? ' is-dragging' : ''}`} {...library.dropTarget}>
@@ -62,6 +64,7 @@ export function PreparePage() {
           <p className="empty">Add an SVG to get started.</p>
         )}
       </main>
+      <DialogHost />
     </div>
   );
 }

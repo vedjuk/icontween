@@ -232,7 +232,8 @@ describe('prepareSvg: sanitizing', () => {
     expect(lines).toContain('Removed for safety: 1× <script>');
     expect(lines).toContain('1× onclick attribute');
     expect(lines).toContain('1× stroke style');
-    expect(lines).toContain('Not supported yet and left out: <a>, <image>, <use>, <style>');
+    expect(lines).toContain('Embedded images were left out.');
+    expect(lines).not.toMatch(/Removed for safety:.*<(a|image|use|style)>/);
   });
 
   it('never touches the source string', () => {
@@ -245,6 +246,64 @@ describe('prepareSvg: sanitizing', () => {
   it('rejects entity declarations', () => {
     const svg = `<?xml version="1.0"?><!DOCTYPE svg [<!ENTITY x "y">]><svg viewBox="0 0 1 1"/>`;
     expect(prepareSvg(svg)).toEqual({ ok: false, error: expect.stringContaining('ENTITY') });
+  });
+});
+
+describe('prepareSvg: unsupported features', () => {
+  it('finds features nested in <defs> and explains each in plain words', () => {
+    const result = prepared('unsupported');
+    const counts = Object.fromEntries(result.report.unsupported.map((u) => [u.feature, u.count]));
+    expect(counts).toEqual({
+      gradient: 1,
+      clipping: 1,
+      symbol: 3, // one <symbol>, two <use>
+      stylesheet: 1,
+      text: 2, // <text> and its <tspan>
+    });
+    const w = result.report.warnings.join('\n');
+    expect(w).toContain('Gradients aren’t supported');
+    expect(w).toContain('Masks and clipping paths aren’t supported');
+    expect(w).toContain('Symbols placed with <use>');
+    expect(w).toContain('CSS in a <style> block is ignored');
+    expect(w).toContain('Convert text to outlines');
+    expect(w).toContain('Dashed strokes');
+    expect(w).toContain('See-through fills and strokes');
+    // One line per feature, not one per element.
+    expect(result.report.warnings.filter((l) => l.includes('Text isn’t'))).toHaveLength(1);
+  });
+
+  it('lists features as plain words, not element names, in the report', () => {
+    const lines = describeReport(prepared('unsupported').report).join('\n');
+    expect(lines).not.toContain('<defs>');
+    expect(lines).not.toContain('<linearGradient>');
+    // fill="url(#g)" and clip-path="url(#c)" pointed at the gradient and the clip: not a safety issue.
+    expect(lines).not.toContain('Removed for safety');
+  });
+
+  it('still lists a url() fill as a safety removal when there is no gradient', () => {
+    const result = prepareSvg(
+      '<svg viewBox="0 0 24 24"><path d="M0 0 L9 9" stroke="black" fill="url(https://x.test/a)"/></svg>',
+    );
+    expect(result.ok && describeReport(result.report).join('\n')).toContain(
+      'Removed for safety: 1× fill attribute',
+    );
+  });
+
+  it('still prepares the shapes it can use', () => {
+    expect(prepared('unsupported').icon.elements).toHaveLength(2);
+  });
+
+  it('says why nothing is left when everything was unsupported', () => {
+    const result = prepareSvg('<svg viewBox="0 0 24 24"><text x="2" y="20">Logo</text></svg>');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain('No drawable shapes');
+      expect(result.error).toContain('Convert text to outlines');
+    }
+  });
+
+  it('reports nothing for clean icons', () => {
+    expect(prepared('lucide-bell').report.unsupported).toEqual([]);
   });
 });
 

@@ -6,7 +6,8 @@ import {
   shareCodeFromHash,
 } from '@icontween/core';
 import { useEffect, useRef } from 'react';
-import { Library } from '../library/Library';
+import { FilePicker, Library, Thumb } from '../library/Library';
+import { checkIcon } from '../library/iconCheck';
 import { useLibrary } from '../library/useLibrary';
 import '../prepare/prepare.css';
 import { ProjectMenu } from '../project/ProjectMenu';
@@ -14,15 +15,13 @@ import { useSaveStatus } from '../project/persistence';
 import { openShareLink } from '../project/share';
 import { ShareButton } from '../project/ShareButton';
 import { STARTER_SOURCES, type SourceIcon } from '../starters';
+import { STEPS } from '../steps';
 import { askConfirm, DialogHost } from '../ui/Dialog';
 import { Canvas } from './Canvas';
 import './editor.css';
 import { ExportButton } from './ExportButton';
 import { Inspector } from './Inspector';
 import { useEditor } from './store';
-
-/** Starter opened when the URL names none and nothing was open before. */
-const DEFAULT_SOURCE = 'lucide-menu';
 
 /**
  * The editor: pick an icon, clone state A into B, shape B by dragging points and handles,
@@ -43,13 +42,13 @@ export function EditorPage() {
   const library = useLibrary(open);
   useUndoKeys();
 
-  /** Opens the first of these ids that is in the library, or the default starter. */
+  /**
+   * Opens the first of these ids that is in the library. With none, the welcome shows
+   * (first visit, or nothing to reopen): it invites your own icon before a starter.
+   */
   const openFirst = (...ids: (string | undefined)[]) => {
     const all = library.all;
-    const icon =
-      ids.map((id) => all.find((i) => i.id === id)).find(Boolean) ??
-      all.find((i) => i.id === DEFAULT_SOURCE) ??
-      STARTER_SOURCES[0];
+    const icon = ids.map((id) => all.find((i) => i.id === id)).find(Boolean);
     if (icon) open(icon);
   };
 
@@ -127,18 +126,65 @@ export function EditorPage() {
           <Inspector />
         </>
       ) : (
-        <main className="editor-main">
+        <main className="editor-main editor-empty">
           {error ? (
             <div className="error" role="alert">
               <h1>{source?.label}</h1>
               <p>{error}</p>
+              <p className="muted">Pick another icon, or drop in a different SVG.</p>
             </div>
           ) : (
-            <p className="empty">Pick an icon to start.</p>
+            <Welcome library={library} onOpen={open} />
           )}
         </main>
       )}
       <DialogHost />
+    </div>
+  );
+}
+
+/** The editor with nothing open: bring your own icon, or start from a starter. */
+function Welcome({
+  library,
+  onOpen,
+}: {
+  library: ReturnType<typeof useLibrary>;
+  onOpen: (icon: SourceIcon) => void;
+}) {
+  return (
+    <div className="welcome">
+      <h1 className="welcome-title">Animate your own icon</h1>
+      <p className="welcome-lede">
+        Drop an SVG anywhere on this page, or choose files. Several at once is fine.
+      </p>
+      <FilePicker library={library} className="button file-button welcome-button">
+        Choose SVG files
+      </FilePicker>
+
+      <ol className="welcome-steps">
+        {STEPS.map((step) => (
+          <li key={step.title}>
+            <h2>{step.title}</h2>
+            <p>{step.text}</p>
+          </li>
+        ))}
+      </ol>
+
+      <section className="welcome-starters" aria-labelledby="welcome-starters-title">
+        <h2 id="welcome-starters-title" className="section-title">
+          Or start from a starter
+        </h2>
+        <ul>
+          {STARTER_SOURCES.map((icon) => (
+            <li key={icon.id}>
+              <button type="button" onClick={() => onOpen(icon)}>
+                <Thumb svg={checkIcon(icon.svg).svg} size={24} />
+                <span>{icon.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

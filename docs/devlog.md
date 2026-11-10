@@ -162,3 +162,19 @@
   in-betweens. Each starter is a card with an Edit button. The hero line and a
   "Make your own" section say it's for your own icons. Decision 019.
   Next: library polish (multi-file drop, thumbnails, unsupported-SVG messages).
+- **2026-11-10** — M5 part 2: library import and the editor's welcome. Dropping, picking or
+  pasting any number of SVGs checks each one the way the editor opens it, adds the ones that
+  work and lists every file in an import report: added, added with things to know, or not
+  added and why. Unsupported features are found anywhere in the tree (also inside `<defs>`)
+  and explained in plain words with what to do: text, masks, gradients, symbols, images,
+  style blocks and so on. Library thumbnails show the prepared clone with a "!" when there
+  are notes. With nothing to reopen, the editor now opens on a welcome ("Animate your own
+  icon", Choose SVG files, the three steps, starter tiles) instead of a starter. Your icons
+  can be renamed and deleted from the list, and the library sections fold (starters fold
+  away once you have your own). File buttons got the pointer cursor. The selected row lost its side bar, and selects
+  got an inset chevron. Checked in
+  the preview: a five-file drop (2 added, 3 refused with reasons), a failed paste, the
+  prepare report, the welcome and opening a starter from it, rename and delete, light and
+  dark.
+  330 core + 112 runtime tests. Decision 020.
+  Next: README with GIFs, then the accessibility pass.

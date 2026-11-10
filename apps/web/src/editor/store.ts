@@ -90,6 +90,10 @@ interface EditorState {
 
   /** Opens an icon: its saved animation if it has one, else a fresh state A. */
   open(source: SourceIcon): void;
+  /** A library icon got a new name: its animation (saved, open, in undo history) follows. */
+  renameIcon(id: string, label: string): void;
+  /** A library icon was deleted: its animation goes too, and the editor closes it if open. */
+  forgetIcon(id: string): void;
   /**
    * Removes the open icon's animation from the project and starts again from state A,
    * with the default purpose. Not undoable (the button asks first).
@@ -207,6 +211,39 @@ export const useEditor = create<EditorState>()((set, get) => {
             ? checked(createAnimation(result.icon, { id: source.id, name: source.label, purpose }))
             : null),
         error: result && !result.ok ? result.error : null,
+        stateId: 'A',
+        stepIndex: 0,
+        elementId: null,
+        point: null,
+        history: emptyHistory(),
+      });
+    },
+
+    renameIcon(id, label) {
+      const rename = <T extends Animation | null>(a: T): T =>
+        a?.id === id ? ({ ...a, name: label } as T) : a;
+      set((s) => ({
+        source: s.source?.id === id ? { ...s.source, label } : s.source,
+        animation: rename(s.animation),
+        saved: s.saved[id] ? { ...s.saved, [id]: rename(s.saved[id]) } : s.saved,
+        // Otherwise undo would bring the old name back.
+        history: {
+          past: s.history.past.map((h) => ({ ...h, animation: rename(h.animation) })),
+          future: s.history.future.map((h) => ({ ...h, animation: rename(h.animation) })),
+        },
+      }));
+    },
+
+    forgetIcon(id) {
+      const s = get();
+      const saved = { ...s.saved };
+      delete saved[id];
+      if (s.source?.id !== id) return set({ saved });
+      set({
+        saved,
+        source: null,
+        animation: null,
+        error: null,
         stateId: 'A',
         stepIndex: 0,
         elementId: null,

@@ -19,6 +19,7 @@ import { createPlayer, type Player } from '@icontween/runtime';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import startersFile from '../../../examples/starters.icontween.json?raw';
 import './landing.css';
+import { STEPS } from './steps';
 
 const STARTERS: Project = (() => {
   const result = parseProject(startersFile);
@@ -52,21 +53,6 @@ const HINTS: Record<TriggerType, string> = {
 };
 
 const INTERACTIVE: TriggerType[] = ['hover', 'click', 'toggle'];
-
-const STEPS = [
-  {
-    title: 'Drop in your icon',
-    text: 'Any SVG, from any icon set or your own. It stays in your browser, and IconTween works on a clean copy.',
-  },
-  {
-    title: 'Start from a purpose, or go manual',
-    text: 'Pick feedback, state change or another purpose, and the trigger, timing and reduced motion are set for you. Or shape every point, curve and step yourself.',
-  },
-  {
-    title: 'Export clean code',
-    text: 'SVG with SMIL, HTML, React or JSON. Small, readable, and it plays exactly like the preview.',
-  },
-];
 
 const PRINCIPLES = [
   {

@@ -29,6 +29,13 @@ import {
 import type { ElementState, PreparedElement, Segment, State, ViewBox } from '../schema';
 import { sanitizeElement, type RemovedItem } from './sanitize';
 import {
+  findUnsupported,
+  isReferenceAttribute,
+  isUnsupportedElement,
+  UNSUPPORTED_HELP,
+  type UnsupportedItem,
+} from './unsupported';
+import {
   inheritProps,
   ownProperty,
   parseLength,
@@ -58,6 +65,8 @@ export interface PrepareReport {
   groupsFlattened: number;
   /** Removed by the sanitizer. */
   removed: RemovedItem[];
+  /** Unsupported features found in the source (left out); explained in `warnings`. */
+  unsupported: UnsupportedItem[];
   /** Elements left out of the result, with the reason. */
   skipped: { reason: string; count: number }[];
   /** Things the designer should know: unsupported features, approximations. */
@@ -71,27 +80,6 @@ export interface PrepareOptions {
   /** Defaults to the global DOMParser (browsers). Tests pass jsdom's. */
   domParser?: DOMParser;
 }
-
-/** Elements dropped because the feature isn't supported yet (vs. dropped for safety). */
-const UNSUPPORTED_FEATURES = new Set([
-  'text',
-  'tspan',
-  'mask',
-  'clipPath',
-  'linearGradient',
-  'radialGradient',
-  'pattern',
-  'filter',
-  'use',
-  'image',
-  'symbol',
-  'marker',
-  'style',
-  'defs',
-  'svg',
-  'a',
-  'switch',
-]);
 
 const SHAPES = new Set(['path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon']);
 
@@ -171,19 +159,15 @@ export function prepareSvg(source: string, options: PrepareOptions = {}): Prepar
     transformsFlattened: 0,
     groupsFlattened: 0,
     removed: [],
+    unsupported: [],
     skipped: [],
     warnings: [],
   };
 
+  // Counted before sanitizing: the sanitizer drops <defs> with everything inside it.
+  report.unsupported = findUnsupported(root);
+  for (const u of report.unsupported) report.warnings.push(UNSUPPORTED_HELP[u.feature].message);
   report.removed = sanitizeElement(root).removed;
-  const unsupported = report.removed
-    .filter((r) => r.kind === 'element' && UNSUPPORTED_FEATURES.has(r.name))
-    .map((r) => `<${r.name}>`);
-  if (unsupported.length > 0) {
-    report.warnings.push(
-      `Not supported yet and left out: ${unsupported.join(', ')}. The result may look different.`,
-    );
-  }
 
   const viewBox = readViewBox(root);
   if (!viewBox) {
@@ -194,7 +178,9 @@ export function prepareSvg(source: string, options: PrepareOptions = {}): Prepar
   walker.visit(root, IDENTITY, {}, 1, true);
 
   if (walker.elements.length === 0) {
-    return { ok: false, error: 'No drawable shapes were found in this SVG.' };
+    // Usually because everything was text, a symbol or an image: say which.
+    const why = report.unsupported.map((u) => UNSUPPORTED_HELP[u.feature].message);
+    return { ok: false, error: ['No drawable shapes were found in this SVG.', ...why].join(' ') };
   }
 
   walker.finishWarnings();
@@ -406,8 +392,13 @@ class Walker {
         `${plural(this.nonUniformStroke, 'stroke was', 'strokes were')} stretched or skewed by a transform. Stroke width is approximated.`,
       );
     }
-    if (this.ignoredProps.size > 0) {
-      w.push(`Ignored (not supported yet): ${[...this.ignoredProps].join(', ')}.`);
+    if (this.ignoredProps.has('stroke-dasharray')) {
+      w.push('Dashed strokes aren’t supported yet, so they show solid.');
+    }
+    if (this.ignoredProps.has('fill-opacity') || this.ignoredProps.has('stroke-opacity')) {
+      w.push(
+        'See-through fills and strokes (fill-opacity, stroke-opacity) aren’t supported yet, so they show solid. Element opacity works.',
+      );
     }
     this.report.skipped = [...this.skipped].map(([reason, count]) => ({ reason, count }));
   }
@@ -464,8 +455,15 @@ export function describeReport(report: PrepareReport): string[] {
   if (report.groupsFlattened) {
     lines.push(`${plural(report.groupsFlattened, 'group', 'groups')} removed (styles pushed down)`);
   }
-  const removed = report.removed.filter(
-    (r) => !(r.kind === 'element' && UNSUPPORTED_FEATURES.has(r.name)),
+  // Unsupported features are explained in the warnings instead, including the attributes
+  // that only pointed at them (clip-path="url(#c)", fill="url(#gradient)").
+  const paints = report.unsupported.some(
+    (u) => u.feature === 'gradient' || u.feature === 'pattern',
+  );
+  const removed = report.removed.filter((r) =>
+    r.kind === 'element'
+      ? !isUnsupportedElement(r.name)
+      : !(isReferenceAttribute(r.name) || (paints && (r.name === 'fill' || r.name === 'stroke'))),
   );
   if (removed.length > 0) {
     const label = { element: '', attribute: ' attribute', style: ' style' } as const;

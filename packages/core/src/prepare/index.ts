@@ -6,3 +6,5 @@ export {
   sanitizeElement,
 } from './sanitize';
 export type { RemovedItem, SanitizeReport } from './sanitize';
+export { findUnsupported, UNSUPPORTED_HELP } from './unsupported';
+export type { UnsupportedFeature, UnsupportedItem } from './unsupported';
