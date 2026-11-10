@@ -9,3 +9,4 @@ export * from './sequence';
 export * from './defaults';
 export * from './purpose';
 export * from './tokens';
+export * from './history';

@@ -76,3 +76,10 @@
   labels under 48 / 24 / 16, options stacked label-above-control to fit the inspector. Both
   are editor-only settings; runtime and schema unchanged. 162 core + 68 runtime tests.
   Decision 011. Next: undo/redo, then check the 12 starters can be built (M3 done).
+- **2026-11-10** — M3 part 6: undo/redo. Core `history.ts` (`recordEdit`, `undo`, `redo`,
+  generic snapshot stack; same-key edits within 1 s merge, 200 steps kept). Editor: every
+  animation or token change goes through `commit`; snapshots keep animation, tokens and the
+  selection (state, step, element), restored on undo. Drags, sliders, nudges and typed
+  numbers are one step each. ⌘Z / ⇧⌘Z (Ctrl+Z / Ctrl+Y), Undo and Redo in the header; text
+  fields keep native undo. History clears when another icon opens. 169 core + 68 runtime
+  tests, runtime unchanged. Decision 012. Next: check the 12 starters can be built (M3 done).

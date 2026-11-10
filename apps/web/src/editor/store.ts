@@ -1,14 +1,18 @@
 /**
  * Editor state. The animation is replaced, never mutated, on every edit (core's edit
- * functions are pure), so undo/redo in M3 can be a stack of animations.
+ * functions are pure), so undo/redo is a stack of snapshots (see core's `history.ts`).
+ * Every change to the animation or the tokens goes through `commit`.
  */
 import {
   addStateCopy,
   applyPattern,
   applyPurposeDefaults,
   createAnimation,
+  emptyHistory,
   movePoint as movePointIn,
   prepareSvg,
+  recordEdit,
+  redo as redoIn,
   resetElementValues,
   setElementDelay,
   setElementSegments,
@@ -19,10 +23,12 @@ import {
   setPurpose,
   setSequencePath,
   setStepTiming,
+  undo as undoIn,
   validateAnimation,
   type Animation,
   type Easing,
   type ElementValuesPatch,
+  type History,
   type MotionTokens,
   type PatternId,
   type PointRef,
@@ -45,6 +51,15 @@ function systemTheme(): PreviewTheme {
     : 'light';
 }
 
+/** What undo/redo restores: the work, plus where it was being edited. */
+interface Snapshot {
+  animation: Animation;
+  tokens: MotionTokens;
+  stateId: string;
+  stepIndex: number;
+  elementId: string | null;
+}
+
 interface EditorState {
   source: SourceIcon | null;
   animation: Animation | null;
@@ -65,6 +80,8 @@ interface EditorState {
   previewStroke: number | null;
   /** Preview tile background, to check the icon on light and dark UI. */
   previewTheme: PreviewTheme;
+  /** Undo/redo for the open animation and the tokens; cleared when another icon opens. */
+  history: History<Snapshot>;
 
   open(source: SourceIcon): void;
   /** Adds a copy of the last state and starts editing it. */
@@ -105,6 +122,9 @@ interface EditorState {
   setRepeat(repeat: Sequence['repeat'], restBetweenLoops?: number): void;
   setSnap(snap: boolean): void;
   setOnion(onion: boolean): void;
+  /** Steps back one edit, and selects where it was made. */
+  undo(): void;
+  redo(): void;
 }
 
 /** In development, every edit is checked against rule 1 (brief §7). */
@@ -116,162 +136,227 @@ function checked(animation: Animation): Animation {
   return animation;
 }
 
-export const useEditor = create<EditorState>()((set, get) => ({
-  source: null,
-  animation: null,
-  error: null,
-  stateId: 'A',
-  stepIndex: 0,
-  elementId: null,
-  point: null,
-  snap: true,
-  onion: true,
-  tokens: DEFAULT_TOKENS,
-  previewMotion: 'auto',
-  previewStroke: null,
-  previewTheme: systemTheme(),
+export const useEditor = create<EditorState>()((set, get) => {
+  /**
+   * Applies an edit and records the state before it for undo. Edits with the same
+   * `merge` key in quick succession (a drag, a slider) become one undo step.
+   */
+  const commit = (
+    change: Partial<Pick<EditorState, 'animation' | 'tokens' | 'stateId' | 'stepIndex' | 'point'>>,
+    merge?: string,
+  ) => {
+    const s = get();
+    if (!s.animation) return;
+    const changed =
+      (change.animation !== undefined && change.animation !== s.animation) ||
+      (change.tokens !== undefined && change.tokens !== s.tokens);
+    if (!changed) return set(change);
+    const at = performance.now();
+    set({ ...change, history: recordEdit(s.history, snapshot(s), { key: merge, at }) });
+  };
 
-  open(source) {
-    const result = prepareSvg(source.svg);
-    // A new icon keeps the purpose of the last one: designers tend to work on one kind.
-    const purpose = get().animation?.purpose;
-    set({
-      source,
-      animation: result.ok
-        ? checked(createAnimation(result.icon, { id: source.id, name: source.label, purpose }))
-        : null,
-      error: result.ok ? null : result.error,
-      stateId: 'A',
-      stepIndex: 0,
-      elementId: null,
-      point: null,
-    });
-  },
+  return {
+    source: null,
+    animation: null,
+    error: null,
+    stateId: 'A',
+    stepIndex: 0,
+    elementId: null,
+    point: null,
+    snap: true,
+    onion: true,
+    tokens: DEFAULT_TOKENS,
+    previewMotion: 'auto',
+    previewStroke: null,
+    previewTheme: systemTheme(),
+    history: emptyHistory(),
 
-  addState() {
-    const { animation } = get();
-    if (!animation) return;
-    const last = animation.states[animation.states.length - 1]!;
-    const next = addStateCopy(animation, last.id);
-    const steps = next.animation.sequence.steps;
-    set({
-      animation: checked(next.animation),
-      stateId: next.stateId,
-      stepIndex: Math.max(
-        0,
-        steps.findIndex((s) => s.to === next.stateId),
-      ),
-      point: null,
-    });
-  },
+    open(source) {
+      const result = prepareSvg(source.svg);
+      // A new icon keeps the purpose of the last one: designers tend to work on one kind.
+      const purpose = get().animation?.purpose;
+      set({
+        source,
+        animation: result.ok
+          ? checked(createAnimation(result.icon, { id: source.id, name: source.label, purpose }))
+          : null,
+        error: result.ok ? null : result.error,
+        stateId: 'A',
+        stepIndex: 0,
+        elementId: null,
+        point: null,
+        history: emptyHistory(),
+      });
+    },
 
-  selectState(stateId) {
-    const { animation, stepIndex } = get();
-    const steps = animation?.sequence.steps ?? [];
-    // Keep the selected step if it already goes there (B in A→B→A→B).
-    const into =
-      steps[stepIndex]?.to === stateId ? stepIndex : steps.findIndex((s) => s.to === stateId);
-    set({ stateId, point: null, ...(into !== -1 && { stepIndex: into }) });
-  },
+    addState() {
+      const { animation } = get();
+      if (!animation) return;
+      const last = animation.states[animation.states.length - 1]!;
+      const next = addStateCopy(animation, last.id);
+      const steps = next.animation.sequence.steps;
+      commit({
+        animation: checked(next.animation),
+        stateId: next.stateId,
+        stepIndex: Math.max(
+          0,
+          steps.findIndex((s) => s.to === next.stateId),
+        ),
+        point: null,
+      });
+    },
 
-  selectStep(stepIndex) {
-    const step = get().animation?.sequence.steps[stepIndex];
-    if (step) set({ stepIndex, stateId: step.to, point: null });
-  },
-  selectElement: (elementId) => set({ elementId, point: null }),
-  selectPoint: (point) => set({ point }),
+    selectState(stateId) {
+      const { animation, stepIndex } = get();
+      const steps = animation?.sequence.steps ?? [];
+      // Keep the selected step if it already goes there (B in A→B→A→B).
+      const into =
+        steps[stepIndex]?.to === stateId ? stepIndex : steps.findIndex((s) => s.to === stateId);
+      set({ stateId, point: null, ...(into !== -1 && { stepIndex: into }) });
+    },
 
-  movePoint(point, x, y) {
-    const { animation, stateId, elementId } = get();
-    if (!animation || !elementId) return;
-    const state = animation.states.find((s) => s.id === stateId);
-    const segments = state?.elements[elementId]?.segments;
-    if (!segments) return;
-    const moved = movePointIn(segments, point, x, y);
-    set({ animation: checked(setElementSegments(animation, stateId, elementId, moved)) });
-  },
+    selectStep(stepIndex) {
+      const step = get().animation?.sequence.steps[stepIndex];
+      if (step) set({ stepIndex, stateId: step.to, point: null });
+    },
+    selectElement: (elementId) => set({ elementId, point: null }),
+    selectPoint: (point) => set({ point }),
 
-  setValues(patch) {
-    const { animation, stateId, elementId } = get();
-    if (!animation || !elementId) return;
-    set({ animation: checked(setElementValues(animation, stateId, elementId, patch)) });
-  },
+    movePoint(point, x, y) {
+      const { animation, stateId, elementId } = get();
+      if (!animation || !elementId) return;
+      const state = animation.states.find((s) => s.id === stateId);
+      const segments = state?.elements[elementId]?.segments;
+      if (!segments) return;
+      const moved = movePointIn(segments, point, x, y);
+      commit(
+        { animation: checked(setElementSegments(animation, stateId, elementId, moved)) },
+        `point:${stateId}:${elementId}:${point.segment}:${point.role}`,
+      );
+    },
 
-  resetValues() {
-    const { animation, stateId, elementId } = get();
-    if (!animation || !elementId) return;
-    set({ animation: checked(resetElementValues(animation, stateId, elementId)) });
-  },
+    setValues(patch) {
+      const { animation, stateId, elementId } = get();
+      if (!animation || !elementId) return;
+      commit(
+        { animation: checked(setElementValues(animation, stateId, elementId, patch)) },
+        `values:${stateId}:${elementId}:${patchFields(patch)}`,
+      );
+    },
 
-  setPivot(x, y) {
-    const { animation, elementId } = get();
-    if (!animation || !elementId) return;
-    set({ animation: checked(setPivotIn(animation, elementId, x, y)) });
-  },
+    resetValues() {
+      const { animation, stateId, elementId } = get();
+      if (!animation || !elementId) return;
+      commit({ animation: checked(resetElementValues(animation, stateId, elementId)) });
+    },
 
-  setPath(path) {
-    const { animation, stepIndex } = get();
-    if (animation) set(withSequence(setSequencePath(animation, path), stepIndex));
-  },
+    setPivot(x, y) {
+      const { animation, elementId } = get();
+      if (!animation || !elementId) return;
+      commit({ animation: checked(setPivotIn(animation, elementId, x, y)) }, `pivot:${elementId}`);
+    },
 
-  applyPattern(id) {
-    const { animation, stepIndex } = get();
-    if (animation) set(withSequence(applyPattern(animation, id), stepIndex));
-  },
+    setPath(path) {
+      const { animation, stepIndex } = get();
+      if (animation) commit(withSequence(setSequencePath(animation, path), stepIndex));
+    },
 
-  setStepTiming(patch) {
-    const { animation, stepIndex } = get();
-    if (animation?.sequence.steps[stepIndex]) {
-      set({ animation: checked(setStepTiming(animation, stepIndex, patch)) });
-    }
-  },
+    applyPattern(id) {
+      const { animation, stepIndex } = get();
+      if (animation) commit(withSequence(applyPattern(animation, id), stepIndex));
+    },
 
-  setDelay(elementId, ms) {
-    const { animation, stepIndex } = get();
-    if (animation?.sequence.steps[stepIndex]) {
-      set({ animation: checked(setElementDelay(animation, stepIndex, elementId, ms)) });
-    }
-  },
+    setStepTiming(patch) {
+      const { animation, stepIndex } = get();
+      if (animation?.sequence.steps[stepIndex]) {
+        commit(
+          { animation: checked(setStepTiming(animation, stepIndex, patch)) },
+          `timing:${stepIndex}:${Object.keys(patch).sort().join(',')}`,
+        );
+      }
+    },
 
-  setTrigger(type) {
-    const { animation } = get();
-    if (animation) set({ animation: { ...animation, trigger: { type } } });
-  },
+    setDelay(elementId, ms) {
+      const { animation, stepIndex } = get();
+      if (animation?.sequence.steps[stepIndex]) {
+        commit(
+          { animation: checked(setElementDelay(animation, stepIndex, elementId, ms)) },
+          `delay:${stepIndex}:${elementId}`,
+        );
+      }
+    },
 
-  setPurpose(purpose) {
-    const { animation, stepIndex } = get();
-    if (animation) set(withSequence(setPurpose(animation, purpose), stepIndex));
-  },
+    setTrigger(type) {
+      const { animation } = get();
+      if (animation) commit({ animation: { ...animation, trigger: { type } } });
+    },
 
-  resetToPurposeDefaults() {
-    const { animation, stepIndex } = get();
-    if (animation) set(withSequence(applyPurposeDefaults(animation), stepIndex));
-  },
+    setPurpose(purpose) {
+      const { animation, stepIndex } = get();
+      if (animation) commit(withSequence(setPurpose(animation, purpose), stepIndex));
+    },
 
-  setReducedMotion(mode) {
-    const { animation } = get();
-    if (animation) set({ animation: checked({ ...animation, reducedMotion: { mode } }) });
-  },
+    resetToPurposeDefaults() {
+      const { animation, stepIndex } = get();
+      if (animation) commit(withSequence(applyPurposeDefaults(animation), stepIndex));
+    },
 
-  setDurationToken: (name, ms) => set({ tokens: setDurationToken(get().tokens, name, ms) }),
-  setEasingToken: (name, easing) => set({ tokens: setEasingToken(get().tokens, name, easing) }),
-  resetTokens: () => set({ tokens: DEFAULT_TOKENS }),
-  setPreviewMotion: (previewMotion) => set({ previewMotion }),
-  setPreviewStroke: (previewStroke) => set({ previewStroke }),
-  setPreviewTheme: (previewTheme) => set({ previewTheme }),
+    setReducedMotion(mode) {
+      const { animation } = get();
+      if (animation) commit({ animation: checked({ ...animation, reducedMotion: { mode } }) });
+    },
 
-  setRepeat(repeat, restBetweenLoops) {
-    const { animation } = get();
-    if (!animation) return;
-    const sequence: Sequence = { ...animation.sequence, repeat };
-    if (repeat === 'once' || !restBetweenLoops) delete sequence.restBetweenLoops;
-    else sequence.restBetweenLoops = restBetweenLoops;
-    set({ animation: checked({ ...animation, sequence }) });
-  },
+    setDurationToken: (name, ms) =>
+      commit({ tokens: setDurationToken(get().tokens, name, ms) }, `duration:${name}`),
+    setEasingToken: (name, easing) =>
+      commit({ tokens: setEasingToken(get().tokens, name, easing) }, `easing:${name}`),
+    resetTokens: () => commit({ tokens: DEFAULT_TOKENS }),
+    setPreviewMotion: (previewMotion) => set({ previewMotion }),
+    setPreviewStroke: (previewStroke) => set({ previewStroke }),
+    setPreviewTheme: (previewTheme) => set({ previewTheme }),
 
-  setSnap: (snap) => set({ snap }),
-  setOnion: (onion) => set({ onion }),
-}));
+    setRepeat(repeat, restBetweenLoops) {
+      const { animation } = get();
+      if (!animation) return;
+      const sequence: Sequence = { ...animation.sequence, repeat };
+      if (repeat === 'once' || !restBetweenLoops) delete sequence.restBetweenLoops;
+      else sequence.restBetweenLoops = restBetweenLoops;
+      commit({ animation: checked({ ...animation, sequence }) }, 'repeat');
+    },
+
+    setSnap: (snap) => set({ snap }),
+    setOnion: (onion) => set({ onion }),
+
+    undo() {
+      const s = get();
+      const step = s.animation && undoIn(s.history, snapshot(s));
+      if (step) set({ ...step.value, history: step.history, point: null });
+    },
+
+    redo() {
+      const s = get();
+      const step = s.animation && redoIn(s.history, snapshot(s));
+      if (step) set({ ...step.value, history: step.history, point: null });
+    },
+  };
+});
+
+function snapshot(s: EditorState): Snapshot {
+  return {
+    animation: s.animation!,
+    tokens: s.tokens,
+    stateId: s.stateId,
+    stepIndex: s.stepIndex,
+    elementId: s.elementId,
+  };
+}
+
+/** Which fields a values patch touches, so rotating and fading stay separate undo steps. */
+function patchFields(patch: ElementValuesPatch): string {
+  const fields = Object.keys(patch).filter((k) => k !== 'transform');
+  if (patch.transform) fields.push(...Object.keys(patch.transform).map((k) => `transform.${k}`));
+  return fields.sort().join(',');
+}
 
 /** After the sequence changed: keeps the selected step in range. */
 function withSequence(animation: Animation, stepIndex: number) {

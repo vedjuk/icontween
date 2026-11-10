@@ -37,6 +37,7 @@ export function EditorPage() {
   };
 
   const library = useLibrary(open);
+  useUndoKeys();
 
   useEffect(() => {
     const wanted = location.hash.slice(1) || DEFAULT_SOURCE;
@@ -55,6 +56,7 @@ export function EditorPage() {
         <a className="header-link" href="/prepare">
           Prepare step
         </a>
+        {animation && <UndoButtons />}
         <span className="prepare-privacy">Not saved yet. Nothing is uploaded.</span>
       </header>
 
@@ -86,6 +88,60 @@ export function EditorPage() {
       )}
     </div>
   );
+}
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iP(hone|ad)/.test(navigator.platform);
+const MOD = isMac ? '⌘' : 'Ctrl+';
+
+function UndoButtons() {
+  const canUndo = useEditor((s) => s.history.past.length > 0);
+  const canRedo = useEditor((s) => s.history.future.length > 0);
+  const { undo, redo } = useEditor.getState();
+  return (
+    <div className="undo-buttons" role="group" aria-label="History">
+      <button
+        type="button"
+        className="button"
+        disabled={!canUndo}
+        onClick={undo}
+        title={`Undo (${MOD}Z)`}
+      >
+        Undo
+      </button>
+      <button
+        type="button"
+        className="button"
+        disabled={!canRedo}
+        onClick={redo}
+        title={`Redo (${isMac ? '⇧⌘Z' : 'Ctrl+Y'})`}
+      >
+        Redo
+      </button>
+    </div>
+  );
+}
+
+/** Text fields keep the browser's own undo while they have focus. */
+const TEXT_FIELD =
+  'textarea, [contenteditable], input:not([type=range], [type=checkbox], [type=radio], [type=button])';
+
+/** ⌘Z / Ctrl+Z undoes; ⇧⌘Z, Ctrl+Shift+Z and Ctrl+Y redo. */
+function useUndoKeys() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(isMac ? e.metaKey : e.ctrlKey) || e.altKey) return;
+      const key = e.key.toLowerCase();
+      const isUndo = key === 'z' && !e.shiftKey;
+      const isRedo = (key === 'z' && e.shiftKey) || (key === 'y' && !isMac);
+      if (!isUndo && !isRedo) return;
+      if ((e.target as HTMLElement | null)?.closest?.(TEXT_FIELD)) return;
+      e.preventDefault();
+      if (isUndo) useEditor.getState().undo();
+      else useEditor.getState().redo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 }
 
 function StateStrip() {

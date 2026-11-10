@@ -202,7 +202,8 @@
   outline-offset: 1px;
 }
 
-.sequence-strip .button:disabled {
+.sequence-strip .button:disabled,
+.undo-buttons .button:disabled {
   opacity: 0.5;
   cursor: default;
 }
@@ -557,4 +558,17 @@
   stroke: var(--border);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
+}
+
+/* Undo / redo in the header */
+
+.undo-buttons {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-self: center;
+}
+
+.undo-buttons .button {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.8125rem;
 }
