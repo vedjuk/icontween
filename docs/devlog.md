@@ -178,3 +178,10 @@
   dark.
   330 core + 112 runtime tests. Decision 020.
   Next: README with GIFs, then the accessibility pass.
+- **2026-11-10** — M5 part 3: README. Rewritten for launch: what IconTween is (the landing
+  page's words), the three steps, the four export formats with React and runtime examples
+  checked against real exports, contributor quick start, an architecture overview (the
+  same-structure rule, the prepare pipeline, preview = export, no backend) linking the
+  decision notes, and the licences. GIFs and the live link are commented-out placeholders;
+  `docs/media/README.md` is the shot list for the four GIFs.
+  Next: record the GIFs and add the live link, then the accessibility pass.
