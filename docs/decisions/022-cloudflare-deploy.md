@@ -1,4 +1,4 @@
-# 022 — Deploying icontween.com on Cloudflare
+# 022 — Deploying IconTween on Cloudflare at icontween.vedjuk.com
 
 Date: 2026-11-10
 
@@ -20,6 +20,16 @@ anything. There was no Cloudflare project, Wrangler config, SPA fallback or soci
   `/runtime`, trailing slashes and unknown paths get `index.html` with 200, and `main.tsx`
   picks the page as before. Real files (`/assets/…`, `/favicon.svg`, `/og-image.png`) are
   served as they are.
+- **A subdomain of the owner's portfolio: `icontween.vedjuk.com`,** not icontween.com. The
+  app is mainly there to show the owner's work to recruiters and hiring managers, next to a
+  case study on vedjuk.com. On the portfolio domain it reads as the owner's work, costs
+  nothing, and has no second domain to renew, so the links in the case study and in every
+  export keep working. vedjuk.com is already a Cloudflare zone, so the Worker's custom
+  domain creates the DNS record and certificate itself. This supersedes "Domain:
+  icontween.com" in brief §13 and §14.
+- **One address in code:** `SITE_URL` in `packages/core/src/site.ts` is what exports name in
+  their header comment. `index.html`, the runtime's banner and types, and the README spell
+  it out, and `site-url.test.ts` checks they match it.
 - **The custom domain is added in the dashboard,** not with `routes` in the config, so a
   deploy never creates or changes DNS records.
 - **`_headers` stays the one place for headers.** Workers static assets read it like Pages

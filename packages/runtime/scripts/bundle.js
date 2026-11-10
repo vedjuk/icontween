@@ -42,7 +42,7 @@ export async function bundleRuntime({ format, minify = false }) {
   const code = (Array.isArray(result) ? result[0] : result).output[0].code;
   const banner = [
     '/*!',
-    ` * IconTween runtime ${runtimeVersion()} · MIT License · https://icontween.com`,
+    ` * IconTween runtime ${runtimeVersion()} · MIT License · https://icontween.vedjuk.com`,
     ' * Plays IconTween animations on inline SVG, and follows prefers-reduced-motion.',
     ' */',
     '',

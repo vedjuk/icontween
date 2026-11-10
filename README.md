@@ -7,14 +7,14 @@
 </p>
 
 <p align="center">
-  <a href="https://icontween.com"><img src="https://img.shields.io/badge/live-icontween.com-d9432a" alt="Live at icontween.com"></a>
+  <a href="https://icontween.vedjuk.com"><img src="https://img.shields.io/badge/live-icontween.vedjuk.com-d9432a" alt="Live at icontween.vedjuk.com"></a>
   <a href="https://github.com/vedjuk/icontween/actions/workflows/ci.yml"><img src="https://github.com/vedjuk/icontween/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT licence"></a>
   <a href="packages/runtime"><img src="https://img.shields.io/badge/runtime-4%20KB%20gzipped-d9432a" alt="Runtime: 4 KB gzipped"></a>
   <img src="https://img.shields.io/badge/backend-none-2ea44f" alt="No backend: everything runs in your browser">
 </p>
 
-<p align="center"><a href="https://icontween.com"><strong>Open IconTween →</strong></a></p>
+<p align="center"><a href="https://icontween.vedjuk.com"><strong>Open IconTween →</strong></a></p>
 
 Bring your own SVG icon and give it purposeful, state-based motion, from smart presets to every
 last point. Then hand it off as small, readable code.
@@ -136,7 +136,7 @@ pnpm dev
 | `pnpm export-check` | Builds every starter in every format and serves a self-checking page on http://localhost:5180 for Safari, Chrome and Firefox |
 
 CI runs typecheck, lint, test and build on every push. Cloudflare builds `main` and serves
-`apps/web/dist` at icontween.com as static files ([`wrangler.jsonc`](wrangler.jsonc), decision 022). Read [`CLAUDE.md`](CLAUDE.md) for the
+`apps/web/dist` at icontween.vedjuk.com as static files ([`wrangler.jsonc`](wrangler.jsonc), decision 022). Read [`CLAUDE.md`](CLAUDE.md) for the
 rules and [`PROJECT_BRIEF.md`](PROJECT_BRIEF.md) for the full picture.
 
 ## Architecture

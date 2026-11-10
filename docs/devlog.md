@@ -213,3 +213,9 @@
   proposes how exported toggles could tell screen readers their state (not built).
   Next: the owner connects Cloudflare and the domain, then checks the live site. Then the
   GIFs and the VoiceOver pass.
+- **2026-11-10** — The site's address is `icontween.vedjuk.com`, a subdomain of the owner's
+  portfolio, not icontween.com (owner decision: it's a portfolio piece, so it should sit on
+  the portfolio domain, at no cost). `SITE_URL` in core is the one place exports get it
+  from. A test checks that `index.html`, the runtime banner and types, and the README use
+  the same address. Export snapshots and the README hero were rebuilt with it. Decision 022
+  updated.

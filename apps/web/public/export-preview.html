@@ -18,7 +18,7 @@
       let written = false;
       addEventListener('message', (event) => {
         // Only the editor's sandboxed frame: our origin is opaque ('null') only when sandboxed,
-        // so another site framing this page can't run its scripts as icontween.com.
+        // so another site framing this page can't run its scripts on this site.
         if (written || self.origin !== 'null') return;
         if (event.origin !== location.origin || event.source !== parent) return;
         if (typeof event.data !== 'string') return;

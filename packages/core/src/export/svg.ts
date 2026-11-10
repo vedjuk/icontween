@@ -17,6 +17,7 @@
 import { formatNumber, segmentsToD } from '../path';
 import { pathAttributes } from '../render';
 import type { Animation, ElementState, PreparedElement, TriggerType } from '../schema';
+import { SITE_URL } from '../site';
 import type { MotionTokens } from '../tokens';
 import { exportMotion, sampleCurve, type ExportMotion } from './easing';
 import { reducedMotionSummary, resolveTokens, type ExportFile } from './export';
@@ -612,7 +613,7 @@ export function exportSvg(
 
   const header = [
     `  <!--`,
-    `    ${name}, an animated icon made with IconTween (https://icontween.com).`,
+    `    ${name}, an animated icon made with IconTween (${SITE_URL}).`,
     `    SVG with SMIL animation: no JavaScript needed.`,
   ];
   if (moving) {

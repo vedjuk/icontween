@@ -1,5 +1,5 @@
 /**
- * Types for icontween.js, the IconTween runtime (MIT License · https://icontween.com).
+ * Types for icontween.js, the IconTween runtime (MIT License · https://icontween.vedjuk.com).
  *
  * Shipped next to exported React components so TypeScript apps can import the runtime.
  * Kept in step with the runtime's source by a type test (packages/runtime/test/public-types.ts).

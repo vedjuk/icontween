@@ -32,7 +32,7 @@ exports[`starter set exports (decision 016) > copy-check exports stay the same (
     </style>
   </head>
   <body>
-    <!-- copy, made with IconTween (https://icontween.com). -->
+    <!-- copy, made with IconTween (https://icontween.vedjuk.com). -->
     <!-- Plays on click. -->
     <button type="button" class="icon-button" id="copy-icon-button" aria-label="copy">
       <svg
@@ -388,7 +388,7 @@ exports[`starter set exports (decision 016) > copy-check exports stay the same (
 
 exports[`starter set exports (decision 016) > copy-check exports stay the same (review the snapshot when they change) > react 1`] = `
 "/**
- * copy, an animated icon made with IconTween (https://icontween.com).
+ * copy, an animated icon made with IconTween (https://icontween.vedjuk.com).
  *
  * Trigger: click, plays on click.
  * Reduced motion: when the OS asks for less motion, it jumps to each state without moving.
@@ -638,7 +638,7 @@ exports[`starter set exports as SVG + SMIL (decision 017) > copy-check SVG stays
   height="24"
 >
   <!--
-    copy, an animated icon made with IconTween (https://icontween.com).
+    copy, an animated icon made with IconTween (https://icontween.vedjuk.com).
     SVG with SMIL animation: no JavaScript needed.
     It plays on click when the SVG is inline in a page. As an <img> it shows its first state.
     Reduced motion: when the OS asks for less motion, it jumps to each state without moving.

@@ -1,4 +1,4 @@
-// Cloudflare deploy for icontween.com (decision 022). An assets-only Worker: no Worker code, so
+// Cloudflare deploy for icontween.vedjuk.com (decision 022). An assets-only Worker: no Worker code, so
 // nothing runs on the server, only static files from the production build (rule 5).
 {
   "name": "icontween",

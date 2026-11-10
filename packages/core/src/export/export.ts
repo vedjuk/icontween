@@ -13,6 +13,7 @@
 import { formatNumber } from '../path';
 import { pathAttributes } from '../render';
 import { SCHEMA_VERSION, type Animation, type Easing, type TriggerType } from '../schema';
+import { SITE_URL } from '../site';
 import type { MotionTokens } from '../tokens';
 import { commentText, componentName, dataVariableName, exportFileBase } from './names';
 import { printData } from './print';
@@ -190,7 +191,7 @@ export function exportHtml(
     '    </style>',
     '  </head>',
     '  <body>',
-    `    <!-- ${name}, made with IconTween (https://icontween.com). -->`,
+    `    <!-- ${name}, made with IconTween (${SITE_URL}). -->`,
     `    <!-- ${capitalise(TRIGGER_TEXT[trigger])}. -->`,
     ...body,
     '',
@@ -299,7 +300,7 @@ export function exportReact(animation: Animation, tokens: MotionTokens): ExportF
 
   const text = [
     '/**',
-    ` * ${name}, an animated icon made with IconTween (https://icontween.com).`,
+    ` * ${name}, an animated icon made with IconTween (${SITE_URL}).`,
     ' *',
     ` * ${triggerSummary(animation)}`,
     ` * ${reducedMotionSummary(animation)}`,
