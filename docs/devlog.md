@@ -70,3 +70,9 @@
   Reduced / Full, editable Motion tokens panel (durations, curves with a glyph, springs with
   settle time). 162 core + 68 runtime tests, runtime unchanged at 3.89 KB. Decision 010.
   Next: M3 part 5 (preview panel options: sizes, stroke widths, light/dark), then undo/redo.
+- **2026-11-10** — M3 part 5: preview panel options. Stroke width (Icon as designed, 1, 1.5,
+  2, 2.5 on a 24 grid, applied with CSS like a host page would, disabled for fill-only
+  icons) and Light / Dark tile background (fixed colours, starts on the app theme), size
+  labels under 48 / 24 / 16, options stacked label-above-control to fit the inspector. Both
+  are editor-only settings; runtime and schema unchanged. 162 core + 68 runtime tests.
+  Decision 011. Next: undo/redo, then check the 12 starters can be built (M3 done).

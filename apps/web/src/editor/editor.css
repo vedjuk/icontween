@@ -356,13 +356,50 @@
   margin-bottom: 0.5rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--surface);
-  color: var(--fg);
+  background: var(--preview-bg);
+  color: var(--preview-fg);
   cursor: pointer;
+}
+
+/* Fixed colours, not the app theme: the tile stands in for a light or a dark product UI. */
+.preview-target[data-theme='light'] {
+  --preview-bg: #ffffff;
+  --preview-fg: #18181b;
+  --preview-label: #71717a;
+}
+
+.preview-target[data-theme='dark'] {
+  --preview-bg: #18181b;
+  --preview-fg: #f4f4f5;
+  --preview-label: #a1a1aa;
 }
 
 .preview-target:hover {
   border-color: var(--muted);
+}
+
+/* A page restyling the icon's strokes, the way a developer would with CSS. */
+.preview-target[data-stroke] path:not([stroke='none']) {
+  stroke-width: var(--preview-stroke);
+}
+
+.preview-size {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-height: 4.25rem;
+}
+
+.preview-size svg {
+  display: block;
+}
+
+.preview-size-label {
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--preview-label);
 }
 
 .preview-target:focus-visible {
@@ -446,13 +483,24 @@
   gap: 0.5rem;
 }
 
-/* Preview motion: system, reduced or full */
+/* Preview options: stroke, background and motion, label above control */
 
-.preview-motion {
+.preview-options {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+}
+
+.preview-options .segmented {
+  margin-bottom: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.preview-options .segmented button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* Motion tokens */

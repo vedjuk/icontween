@@ -36,6 +36,15 @@ import { DEFAULT_TOKENS, type ReducedMotionPreference } from '@icontween/runtime
 import { create } from 'zustand';
 import type { SourceIcon } from '../starters';
 
+export type PreviewTheme = 'light' | 'dark';
+
+/** The preview starts on the app's own theme. */
+function systemTheme(): PreviewTheme {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
+}
+
 interface EditorState {
   source: SourceIcon | null;
   animation: Animation | null;
@@ -52,6 +61,10 @@ interface EditorState {
   tokens: MotionTokens;
   /** How the preview treats reduced motion: like the OS, or forced either way. */
   previewMotion: ReducedMotionPreference;
+  /** Preview-only stroke width (on a 24-unit grid); null shows the icon as designed. */
+  previewStroke: number | null;
+  /** Preview tile background, to check the icon on light and dark UI. */
+  previewTheme: PreviewTheme;
 
   open(source: SourceIcon): void;
   /** Adds a copy of the last state and starts editing it. */
@@ -87,6 +100,8 @@ interface EditorState {
   setEasingToken(name: string, easing: Easing): void;
   resetTokens(): void;
   setPreviewMotion(preference: ReducedMotionPreference): void;
+  setPreviewStroke(width: number | null): void;
+  setPreviewTheme(theme: PreviewTheme): void;
   setRepeat(repeat: Sequence['repeat'], restBetweenLoops?: number): void;
   setSnap(snap: boolean): void;
   setOnion(onion: boolean): void;
@@ -113,6 +128,8 @@ export const useEditor = create<EditorState>()((set, get) => ({
   onion: true,
   tokens: DEFAULT_TOKENS,
   previewMotion: 'auto',
+  previewStroke: null,
+  previewTheme: systemTheme(),
 
   open(source) {
     const result = prepareSvg(source.svg);
@@ -240,6 +257,8 @@ export const useEditor = create<EditorState>()((set, get) => ({
   setEasingToken: (name, easing) => set({ tokens: setEasingToken(get().tokens, name, easing) }),
   resetTokens: () => set({ tokens: DEFAULT_TOKENS }),
   setPreviewMotion: (previewMotion) => set({ previewMotion }),
+  setPreviewStroke: (previewStroke) => set({ previewStroke }),
+  setPreviewTheme: (previewTheme) => set({ previewTheme }),
 
   setRepeat(repeat, restBetweenLoops) {
     const { animation } = get();
