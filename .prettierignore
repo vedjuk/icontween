@@ -4,3 +4,5 @@ pnpm-lock.yaml
 PROJECT_BRIEF.md
 CLAUDE.md
 examples/source
+# Written by the app (Export project); kept byte-for-byte
+*.icontween.json

@@ -1,0 +1,395 @@
+/* Landing page (Landing.tsx). Calm and precise: the starters carry the motion. */
+
+.landing {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.landing a {
+  color: var(--accent-text);
+  text-underline-offset: 0.2em;
+}
+
+.landing :is(a, button):focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 3px;
+}
+
+/* --- Hero ----------------------------------------------------------------------------- */
+
+.landing-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.875rem;
+  padding: clamp(4rem, 14vh, 8rem) 0 clamp(3rem, 8vh, 5rem);
+  text-align: center;
+}
+
+.landing-wordmark {
+  font-size: clamp(3rem, 10vw, 5rem);
+}
+
+/*
+ * The wordmark tweens in: it reads "icontwn" for a beat, then the two e's open up between
+ * the keyframe letters. Purpose: a single, quiet arrival that names what the tool does.
+ * The width animates as a grid track (0fr → 1fr), so each e opens to exactly its own width.
+ */
+.wordmark-inbetween {
+  display: inline-grid;
+  grid-template-columns: 0fr;
+  animation: inbetween-open 520ms cubic-bezier(0.2, 0, 0, 1) 700ms forwards;
+}
+
+.wordmark-inbetween > span {
+  min-width: 0;
+  /* clip, not hidden: hidden would make a scroll container and move the baseline */
+  overflow: clip;
+  opacity: 0;
+  animation: inbetween-show 360ms cubic-bezier(0.2, 0, 0, 1) 820ms forwards;
+}
+
+.wordmark-inbetween + .wordmark-inbetween,
+.wordmark-inbetween + .wordmark-inbetween > span {
+  animation-delay: 790ms;
+}
+
+.wordmark-inbetween + .wordmark-inbetween > span {
+  animation-delay: 910ms;
+}
+
+@keyframes inbetween-open {
+  to {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes inbetween-show {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-inbetween,
+  .wordmark-inbetween > span {
+    animation: none;
+    grid-template-columns: 1fr;
+    opacity: 1;
+  }
+}
+
+.landing-tagline {
+  margin: 0;
+  font-size: clamp(1.125rem, 2.5vw, 1.375rem);
+}
+
+.landing-lede {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.landing a.landing-button {
+  display: inline-block;
+  padding: 0.625rem 1.125rem;
+  border: 1px solid var(--fg);
+  border-radius: 8px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.landing a.landing-button-quiet {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--fg);
+}
+
+.landing a.landing-button-quiet:hover {
+  border-color: var(--muted);
+}
+
+/* --- Principles ----------------------------------------------------------------------- */
+
+.landing-principles ul {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem 2rem;
+  margin: 0;
+  padding: 2rem 0 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+
+.landing-principles h3 {
+  margin: 0 0 0.375rem;
+  font-size: 0.9375rem;
+}
+
+.landing-principles p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+/* --- Starters ------------------------------------------------------------------------- */
+
+.landing-starters {
+  padding: clamp(4rem, 10vh, 6rem) 0 2rem;
+  scroll-margin-top: 1rem;
+}
+
+.landing-starters > h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  letter-spacing: -0.02em;
+}
+
+.landing-section-lede {
+  max-width: 36rem;
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.landing-reduced-note {
+  max-width: 36rem;
+  margin: 1rem 0 0;
+  padding: 0.625rem 0.875rem;
+  border-radius: 8px;
+  background: var(--subtle);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.landing-purpose {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  gap: 1rem 2rem;
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.landing-purpose:first-of-type {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.landing-purpose-text h3 {
+  margin: 0 0 0.375rem;
+  font-size: 1rem;
+}
+
+.landing-purpose-text p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.landing-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One card per starter: the play area on top, its name and Edit below. */
+.landing-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.landing-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+}
+
+button.landing-tile {
+  cursor: pointer;
+}
+
+button.landing-tile:hover {
+  background: var(--subtle);
+}
+
+/* Inside the card, so the ring sits inside its rounded edge. */
+.landing .landing-tile:focus-visible {
+  outline-offset: -3px;
+  border-radius: 12px 12px 0 0;
+}
+
+.landing-icon {
+  width: 48px;
+  height: 48px;
+  overflow: visible;
+}
+
+.landing-tile-hint {
+  position: absolute;
+  right: 0;
+  bottom: 0.625rem;
+  left: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.landing-replay {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.landing-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.875rem;
+  border-top: 1px solid var(--border);
+}
+
+.landing-card-footer h4 {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.landing a.landing-edit {
+  flex: none;
+  padding: 0.3125rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--fg);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.landing a.landing-edit:hover {
+  border-color: var(--muted);
+  background: var(--subtle);
+}
+
+@media (max-width: 60rem) {
+  .landing-principles ul {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 40rem) {
+  .landing-principles ul {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-purpose {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Make your own ------------------------------------------------------------------- */
+
+.landing-make {
+  padding: clamp(3rem, 8vh, 5rem) 0;
+}
+
+.landing-make > h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  letter-spacing: -0.02em;
+}
+
+.landing-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem 2rem;
+  margin: 2rem 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.landing-steps li {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  counter-increment: step;
+}
+
+/* The step number, quiet, above each title. */
+.landing-steps li::before {
+  content: counter(step, decimal-leading-zero);
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--accent-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.landing-steps h3 {
+  margin: 0 0 0.375rem;
+  font-size: 0.9375rem;
+}
+
+.landing-steps p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 48rem) {
+  .landing-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Footer --------------------------------------------------------------------------- */
+
+.landing-footer {
+  padding: 2rem 0 3rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.landing-footer p {
+  margin: 0;
+}

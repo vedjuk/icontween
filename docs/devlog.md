@@ -151,3 +151,14 @@
   or moved point fails. Owner ran it in Safari 26.5 and Firefox 159: all 84 pass in both.
   Decision 018. M4 done.
   Next: M5 (showcase and launch).
+- **2026-11-10** — M5 part 1: landing page. The 12 starters now ship as
+  `examples/starters.icontween.json` (seeded once from the recipes; from now on the file is
+  the source of truth, tuned in the editor and exported over it). The landing page has the
+  tagline, four principles and the starters grouped by purpose, playing live with the
+  shipping runtime. Each card has "Open in editor", a share link that goes through the
+  usual checks. Reduced motion gets a note. Checked in the preview: toggle morphs, links
+  open the editor (with the replace question when you already have one), mobile and dark
+  mode. The hero wordmark tweens in: "icontwn", then the two e's open up as the
+  in-betweens. Each starter is a card with an Edit button. The hero line and a
+  "Make your own" section say it's for your own icons. Decision 019.
+  Next: library polish (multi-file drop, thumbnails, unsupported-SVG messages).
