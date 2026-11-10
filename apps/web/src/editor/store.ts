@@ -82,8 +82,21 @@ interface EditorState {
   previewTheme: PreviewTheme;
   /** Undo/redo for the open animation and the tokens; cleared when another icon opens. */
   history: History<Snapshot>;
+  /**
+   * Every animation in the project, by id (the id of the icon it was made from). An
+   * animation joins the project on its first edit, so browsing icons adds nothing.
+   */
+  saved: Record<string, Animation>;
 
+  /** Opens an icon: its saved animation if it has one, else a fresh state A. */
   open(source: SourceIcon): void;
+  /**
+   * Removes the open icon's animation from the project and starts again from state A,
+   * with the default purpose. Not undoable (the button asks first).
+   */
+  discard(): void;
+  /** Replaces the project's animations and tokens (after loading or importing). */
+  loadProject(project: { animations: Animation[]; tokens: MotionTokens }): void;
   /** Adds a copy of the last state and starts editing it. */
   addState(): void;
   /** Edits a state, and selects the first step into it if there is one. */
@@ -152,7 +165,11 @@ export const useEditor = create<EditorState>()((set, get) => {
       (change.tokens !== undefined && change.tokens !== s.tokens);
     if (!changed) return set(change);
     const at = performance.now();
-    set({ ...change, history: recordEdit(s.history, snapshot(s), { key: merge, at }) });
+    set({
+      ...change,
+      history: recordEdit(s.history, snapshot(s), { key: merge, at }),
+      saved: keep(s.saved, change.animation),
+    });
   };
 
   return {
@@ -170,21 +187,47 @@ export const useEditor = create<EditorState>()((set, get) => {
     previewStroke: null,
     previewTheme: systemTheme(),
     history: emptyHistory(),
+    saved: {},
 
     open(source) {
-      const result = prepareSvg(source.svg);
+      const saved = get().saved[source.id];
+      const result = saved ? null : prepareSvg(source.svg);
       // A new icon keeps the purpose of the last one: designers tend to work on one kind.
       const purpose = get().animation?.purpose;
       set({
         source,
-        animation: result.ok
-          ? checked(createAnimation(result.icon, { id: source.id, name: source.label, purpose }))
-          : null,
-        error: result.ok ? null : result.error,
+        animation:
+          saved ??
+          (result?.ok
+            ? checked(createAnimation(result.icon, { id: source.id, name: source.label, purpose }))
+            : null),
+        error: result && !result.ok ? result.error : null,
         stateId: 'A',
         stepIndex: 0,
         elementId: null,
         point: null,
+        history: emptyHistory(),
+      });
+    },
+
+    discard() {
+      const { source, saved } = get();
+      if (!source) return;
+      const rest = { ...saved };
+      delete rest[source.id];
+      // Without an open animation, `open` doesn't carry the purpose over: the icon comes
+      // back exactly as it was first opened (purpose, trigger, timing and all).
+      set({ saved: rest, animation: null });
+      get().open(source);
+    },
+
+    loadProject({ animations, tokens }) {
+      set({
+        saved: Object.fromEntries(animations.map((a) => [a.id, a])),
+        tokens,
+        source: null,
+        animation: null,
+        error: null,
         history: emptyHistory(),
       });
     },
@@ -330,16 +373,29 @@ export const useEditor = create<EditorState>()((set, get) => {
     undo() {
       const s = get();
       const step = s.animation && undoIn(s.history, snapshot(s));
-      if (step) set({ ...step.value, history: step.history, point: null });
+      if (step) {
+        const saved = keep(s.saved, step.value.animation);
+        set({ ...step.value, history: step.history, point: null, saved });
+      }
     },
 
     redo() {
       const s = get();
       const step = s.animation && redoIn(s.history, snapshot(s));
-      if (step) set({ ...step.value, history: step.history, point: null });
+      if (step) {
+        const saved = keep(s.saved, step.value.animation);
+        set({ ...step.value, history: step.history, point: null, saved });
+      }
     },
   };
 });
+
+/** The project's animations with this one updated (or added on its first edit). */
+function keep(saved: Record<string, Animation>, animation: Animation | null | undefined) {
+  return animation && saved[animation.id] !== animation
+    ? { ...saved, [animation.id]: animation }
+    : saved;
+}
 
 function snapshot(s: EditorState): Snapshot {
   return {

@@ -3,46 +3,53 @@ import { useEffect } from 'react';
 import { Library } from '../library/Library';
 import { useLibrary } from '../library/useLibrary';
 import '../prepare/prepare.css';
+import { ProjectMenu } from '../project/ProjectMenu';
+import { useSaveStatus } from '../project/persistence';
 import { STARTER_SOURCES, type SourceIcon } from '../starters';
+import { askConfirm, DialogHost } from '../ui/Dialog';
 import { Canvas } from './Canvas';
 import './editor.css';
 import { Inspector } from './Inspector';
 import { useEditor } from './store';
 
-/** Starter opened when the URL names none. */
+/** Starter opened when the URL names none and nothing was open before. */
 const DEFAULT_SOURCE = 'lucide-menu';
 
 /**
- * M2 editor: pick an icon, clone state A into B, shape B by dragging points and handles,
- * and try the result live. Work isn't saved yet (M4).
+ * The editor: pick an icon, clone state A into B, shape B by dragging points and handles,
+ * and try the result live. Work is saved in this browser as you go.
  */
 export function EditorPage() {
   const source = useEditor((s) => s.source);
   const animation = useEditor((s) => s.animation);
   const error = useEditor((s) => s.error);
+  const saved = useEditor((s) => s.saved);
 
   const open = (icon: SourceIcon) => {
-    const current = useEditor.getState().animation;
-    if (
-      current &&
-      current.states.length > 1 &&
-      !window.confirm('Open another icon? Your states for this one are not saved yet.')
-    ) {
-      return;
-    }
     useEditor.getState().open(icon);
-    // Starters can be linked to; user icons only live in this tab.
-    const linkable = STARTER_SOURCES.some((s) => s.id === icon.id);
-    history.replaceState(null, '', linkable ? `#${icon.id}` : location.pathname);
+    // Your own icons link too, but only in this browser, where they're saved.
+    history.replaceState(null, '', `#${icon.id}`);
   };
 
   const library = useLibrary(open);
   useUndoKeys();
 
+  /** Opens the first of these ids that is in the library, or the default starter. */
+  const openFirst = (...ids: (string | undefined)[]) => {
+    const all = library.all;
+    const icon =
+      ids.map((id) => all.find((i) => i.id === id)).find(Boolean) ??
+      all.find((i) => i.id === DEFAULT_SOURCE) ??
+      STARTER_SOURCES[0];
+    if (icon) open(icon);
+  };
+
   useEffect(() => {
-    const wanted = location.hash.slice(1) || DEFAULT_SOURCE;
-    const icon = STARTER_SOURCES.find((s) => s.id === wanted) ?? STARTER_SOURCES[0];
-    if (icon && !useEditor.getState().source) useEditor.getState().open(icon);
+    if (!useEditor.getState().source) {
+      openFirst(location.hash.slice(1), useSaveStatus.getState().openId);
+    }
+    // Runs once, after the saved project has loaded (see main.tsx).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -57,17 +64,25 @@ export function EditorPage() {
           Prepare step
         </a>
         {animation && <UndoButtons />}
-        <span className="prepare-privacy">Not saved yet. Nothing is uploaded.</span>
+        <ProjectMenu onImported={(project) => openFirst(...project.animations.map((a) => a.id))} />
       </header>
 
       <aside className="prepare-sources" aria-label="Icons">
-        <Library library={library} selectedId={source?.id ?? ''} onSelect={open} />
+        <Library
+          library={library}
+          selectedId={source?.id ?? ''}
+          onSelect={open}
+          editedIds={saved}
+        />
       </aside>
 
       {animation ? (
         <>
           <main className="editor-main">
-            <h1 className="editor-title">{animation.name}</h1>
+            <div className="editor-title-row">
+              <h1 className="editor-title">{animation.name}</h1>
+              {saved[animation.id] && <StartOver />}
+            </div>
             <Canvas />
             <StateStrip />
             <SequenceStrip />
@@ -86,7 +101,31 @@ export function EditorPage() {
           )}
         </main>
       )}
+      <DialogHost />
     </div>
+  );
+}
+
+/** Drops the open icon's animation from the project, after asking. */
+function StartOver() {
+  const name = useEditor((s) => s.animation?.name);
+  return (
+    <button
+      type="button"
+      className="button start-over"
+      onClick={async () => {
+        const ok = await askConfirm({
+          title: `Start ${name} over?`,
+          message:
+            'Its states, sequence, timing and purpose are removed, and it goes back to the ' +
+            'prepared icon. This can’t be undone.',
+          confirmLabel: 'Start over',
+        });
+        if (ok) useEditor.getState().discard();
+      }}
+    >
+      Start over
+    </button>
   );
 }
 

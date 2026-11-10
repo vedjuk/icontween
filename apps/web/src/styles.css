@@ -139,3 +139,49 @@ body {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* App dialogs (see ui/Dialog.tsx) */
+
+.app-dialog {
+  width: min(26rem, calc(100vw - 2rem));
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.app-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.app-dialog h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.app-dialog p {
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.app-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.button.is-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.button.is-primary:hover {
+  border-color: var(--accent-text);
+  background: var(--accent-text);
+}

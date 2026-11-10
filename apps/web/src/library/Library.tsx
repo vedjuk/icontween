@@ -12,10 +12,13 @@ export function Library({
   library,
   selectedId,
   onSelect,
+  editedIds = {},
 }: {
   library: ReturnType<typeof useLibrary>;
   selectedId: string;
   onSelect: (icon: SourceIcon) => void;
+  /** Icons that have an animation in the project get a dot. */
+  editedIds?: Record<string, unknown>;
 }) {
   const [pasted, setPasted] = useState('');
   const { userIcons, addIcons, addFiles } = library;
@@ -66,6 +69,7 @@ export function Library({
           icons={userIcons}
           selectedId={selectedId}
           onSelect={onSelect}
+          editedIds={editedIds}
         />
       )}
       <IconList
@@ -73,6 +77,7 @@ export function Library({
         icons={STARTER_SOURCES}
         selectedId={selectedId}
         onSelect={onSelect}
+        editedIds={editedIds}
       />
     </>
   );
@@ -83,11 +88,13 @@ function IconList({
   icons,
   selectedId,
   onSelect,
+  editedIds,
 }: {
   title: string;
   icons: SourceIcon[];
   selectedId: string;
   onSelect: (icon: SourceIcon) => void;
+  editedIds: Record<string, unknown>;
 }) {
   return (
     <section>
@@ -103,6 +110,11 @@ function IconList({
             >
               <Thumb svg={icon.svg} />
               <span>{icon.label}</span>
+              {icon.id in editedIds && (
+                <span className="edited-dot" title="Animated in this project">
+                  <span className="visually-hidden">(animated)</span>
+                </span>
+              )}
             </button>
           </li>
         ))}

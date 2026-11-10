@@ -91,3 +91,13 @@
   prepare the icon with more parts (pause, eye-off) and reshape state A too. menu → x also
   built by hand in the running editor. 197 core + 68 runtime tests. Decision 013.
   Next: M4 (persistence, export, sharing).
+- **2026-11-10** — M4 part 1: auto-save and project files. Core `project.ts`:
+  `serializeProject` (readable JSON), `parseProject` / `readProject` / `readAnimation`,
+  which rebuild saved data from known fields, keep ids plain, reject remote paint, refuse
+  newer schemas and run `validateAnimation()`. Editor keeps every edited animation
+  (`saved`, by icon id); opening an icon reopens its work, "Start over" drops it, edited
+  icons get a dot. IndexedDB auto-save (no dependency) of the project, your icons and the
+  open icon; save status in the header. Import (replaces, after asking) and Export
+  `.icontween.json`. Checked in the browser: reload keeps work, damaged file refused,
+  export → import round trip. 210 core + 68 runtime tests. Decision 014.
+  Next: share links in the URL hash.

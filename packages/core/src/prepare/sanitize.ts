@@ -80,7 +80,7 @@ export interface SanitizeReport {
 }
 
 /** Values that could reach the network or run code, even in an allowed property. */
-const DANGEROUS_VALUE = /url\s*\(|expression\s*\(|javascript:|@import|\\/i;
+export const DANGEROUS_VALUE = /url\s*\(|expression\s*\(|javascript:|@import|\\/i;
 
 class Tally {
   private map = new Map<string, RemovedItem>();

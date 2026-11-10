@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { EditorPage } from './editor/EditorPage';
 import { Landing } from './Landing';
 import { PreparePage } from './prepare/PreparePage';
+import { startPersistence } from './project/persistence';
 import { RuntimePage } from './runtime/RuntimePage';
 import './styles.css';
 
@@ -13,6 +14,13 @@ const pages: Record<string, () => React.JSX.Element> = {
   '/runtime': RuntimePage,
 };
 const Page = pages[window.location.pathname.replace(/\/+$/, '')] ?? Landing;
-const page = <Page />;
+const render = () =>
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <Page />
+    </StrictMode>,
+  );
 
-createRoot(document.getElementById('root')!).render(<StrictMode>{page}</StrictMode>);
+// Pages that work on the project wait for the saved copy, so nothing opens twice.
+if (Page === EditorPage || Page === PreparePage) void startPersistence().finally(render);
+else render();

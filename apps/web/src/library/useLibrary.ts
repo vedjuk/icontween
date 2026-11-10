@@ -1,14 +1,15 @@
 import { useMemo, useState, type DragEvent } from 'react';
 import { STARTER_SOURCES, type SourceIcon } from '../starters';
+import { useLibraryStore } from './libraryStore';
 
-/** User icons for this page (not persisted until M4) plus drag-and-drop handling. */
+/** The user's icons (saved in this browser) plus drag-and-drop handling. */
 export function useLibrary(onAdded: (first: SourceIcon) => void) {
-  const [userIcons, setUserIcons] = useState<SourceIcon[]>([]);
+  const userIcons = useLibraryStore((s) => s.userIcons);
   const [dragging, setDragging] = useState(false);
 
   const addIcons = (icons: SourceIcon[]) => {
     if (icons.length === 0) return;
-    setUserIcons((prev) => [...icons, ...prev]);
+    useLibraryStore.getState().add(icons);
     onAdded(icons[0]!);
   };
 
