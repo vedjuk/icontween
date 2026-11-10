@@ -185,3 +185,8 @@
   decision notes, and the licences. GIFs and the live link are commented-out placeholders;
   `docs/media/README.md` is the shot list for the four GIFs.
   Next: record the GIFs and add the live link, then the accessibility pass.
+- **2026-11-10** — M5 part 3, follow-up: the README gets a moving hero and badges. The hero is
+  `docs/media/hero.svg`, the twelve starters in a row of tiles made with IconTween's own SVG +
+  SMIL export, switched to looping so they play as an `<img>` on GitHub (`pnpm readme-hero`).
+  Badges: CI, MIT, runtime 4 KB gzipped, no backend. A live-site badge waits for the URL.
+  The hero GIF left the shot list; three GIFs remain.

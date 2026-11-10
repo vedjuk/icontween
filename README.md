@@ -1,6 +1,22 @@
-# IconTween
+<h1 align="center">IconTween</h1>
 
-**Motion for the moments that matter.**
+<p align="center"><strong>Motion for the moments that matter.</strong></p>
+
+<p align="center">
+  <img src="docs/media/hero.svg" alt="The twelve IconTween starters animating: pause to play, menu to close, a lock opening, a bell ringing, a heart beating and more" width="830">
+</p>
+
+<p align="center">
+  <a href="https://github.com/vedjuk/icontween/actions/workflows/ci.yml"><img src="https://github.com/vedjuk/icontween/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT licence"></a>
+  <a href="packages/runtime"><img src="https://img.shields.io/badge/runtime-4%20KB%20gzipped-d9432a" alt="Runtime: 4 KB gzipped"></a>
+  <img src="https://img.shields.io/badge/backend-none-2ea44f" alt="No backend: everything runs in your browser">
+</p>
+
+<!-- TODO(owner): add the live link once icontween.com is up, e.g.
+<p align="center"><a href="https://icontween.com"><strong>Open IconTween →</strong></a></p>
+and a badge: <a href="https://icontween.com"><img src="https://img.shields.io/badge/live-icontween.com-d9432a" alt="Live"></a>
+-->
 
 Bring your own SVG icon and give it purposeful, state-based motion, from smart presets to every
 last point. Then hand it off as small, readable code.
@@ -9,13 +25,8 @@ IconTween is for the few icons in a product that deserve a crafted moment: a cop
 confirms, a menu that becomes a close, a bell that asks for attention. Everything runs in your
 browser. Nothing you make is uploaded.
 
-<!-- TODO(owner): add the live link once icontween.com is up, e.g.
-**[Open IconTween →](https://icontween.com)**
--->
-
-<!-- GIF placeholder: docs/media/hero.gif (see docs/media/README.md). Uncomment once recorded.
-![The starters on the landing page, played by hover and click](docs/media/hero.gif)
--->
+The animation above is IconTween's own SVG export: plain SMIL, no JavaScript, playing as an
+image. It's rebuilt from the starters with `pnpm readme-hero`.
 
 ## How it works
 

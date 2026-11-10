@@ -13,7 +13,8 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "export-check": "pnpm --filter @icontween/runtime export-check"
+    "export-check": "pnpm --filter @icontween/runtime export-check",
+    "readme-hero": "node packages/runtime/scripts/readme-hero.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
