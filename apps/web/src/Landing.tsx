@@ -5,43 +5,20 @@
  */
 import {
   encodeShare,
-  parseProject,
   PURPOSE_DEFAULTS,
   PURPOSES,
   shareAnimation,
   SHARE_HASH_KEY,
   type Animation,
-  type Project,
   type Purpose,
   type TriggerType,
 } from '@icontween/core';
 import { createPlayer, type Player } from '@icontween/runtime';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import startersFile from '../../../examples/starters.icontween.json?raw';
 import './landing.css';
+import { usePhone } from './phone/usePhone';
+import { STARTERS, STARTER_TITLES as TITLES } from './starterSet';
 import { STEPS } from './steps';
-
-const STARTERS: Project = (() => {
-  const result = parseProject(startersFile);
-  if (!result.ok) throw new Error(`examples/starters.icontween.json: ${result.error}`);
-  return result.value;
-})();
-
-/** What each starter is for, in the words of the moment it serves. Keyed by icon id. */
-const TITLES: Record<string, string> = {
-  'lucide-pause': 'Play ↔ pause',
-  'lucide-menu': 'Menu ↔ close',
-  'lucide-lock': 'Lock ↔ unlock',
-  'lucide-eye-off': 'Show ↔ hide',
-  'lucide-volume-2': 'Sound ↔ mute',
-  'lucide-copy': 'Copied',
-  'lucide-send': 'Sent',
-  'lucide-download': 'Download',
-  'lucide-refresh-cw': 'Loading',
-  'lucide-bell': 'Notification',
-  'lucide-search': 'Search',
-  'lucide-heart': 'Like',
-};
 
 const HINTS: Record<TriggerType, string> = {
   hover: 'Hover or focus',
@@ -224,6 +201,7 @@ function StarterCard({ animation, link }: { animation: Animation; link?: string 
   // on every click; this follows it.
   const [pressed, setPressed] = useState(false);
   const hintId = `hint-${animation.id}`;
+  const phone = usePhone();
 
   useEffect(() => {
     const svg = svgRef.current;
@@ -276,8 +254,17 @@ function StarterCard({ animation, link }: { animation: Animation; link?: string 
       </Tile>
       <div className="landing-card-footer">
         <h4>{title}</h4>
+        {/* Phones open links in the viewer (decision 024), so the link says so. */}
         <a className="landing-edit" href={link ?? `/editor#${animation.id}`}>
-          Edit<span className="visually-hidden"> {title} in the editor</span>
+          {phone ? (
+            <>
+              View<span className="visually-hidden"> {title} and its settings</span>
+            </>
+          ) : (
+            <>
+              Edit<span className="visually-hidden"> {title} in the editor</span>
+            </>
+          )}
         </a>
       </div>
     </li>

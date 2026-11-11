@@ -12,6 +12,8 @@ import { STARTER_SOURCES, type SourceIcon } from '../starters';
 import { Compare, type CompareMode } from './Compare';
 import { DialogHost } from '../ui/Dialog';
 import { MaskedSvg } from './MaskedSvg';
+import { PhoneView } from '../phone/PhoneView';
+import { usePhone } from '../phone/usePhone';
 import './prepare.css';
 
 const MODES: { id: CompareMode; label: string }[] = [
@@ -20,11 +22,16 @@ const MODES: { id: CompareMode; label: string }[] = [
   { id: 'side-by-side', label: 'Side by side' },
 ];
 
+/** Phone-sized screens get the viewer instead (decision 024). */
+export function PreparePage() {
+  return usePhone() ? <PhoneView /> : <PrepareWorkbench />;
+}
+
 /**
  * M1 prepare screen: pick or bring an SVG, see the original against the prepared
  * clone, and read the cleanup report. Nothing leaves the browser.
  */
-export function PreparePage() {
+function PrepareWorkbench() {
   const [selectedId, setSelectedId] = useState(STARTER_SOURCES[0]?.id ?? '');
   const [mode, setMode] = useState<CompareMode>('overlay');
   const [showGrid, setShowGrid] = useState(true);

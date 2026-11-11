@@ -25,6 +25,15 @@ import { askConfirm, showMessage } from '../ui/Dialog';
 export async function makeShareLink(): Promise<string | null> {
   const { animation, source, tokens } = useEditor.getState();
   if (!animation || !source) return null;
+  return shareLinkFor(animation, tokens, source);
+}
+
+/** A link to any animation, made from the icon it came from. */
+export async function shareLinkFor(
+  animation: Animation,
+  tokens: MotionTokens,
+  source: SourceIcon,
+): Promise<string> {
   // Starters ship with the app; anything else travels with the link.
   const builtIn = STARTER_SOURCES.some((s) => s.id === source.id);
   const icon = builtIn ? undefined : { fileName: `${source.label}.svg`, svg: source.svg };
@@ -103,7 +112,7 @@ function sameAnimation(mine: Animation, shared: Animation): boolean {
  * The link's token values laid over the project's. Names the app doesn't know, and easings
  * of another kind, are skipped; values are clamped as if set in the inspector.
  */
-function layTokens(mine: MotionTokens, link: MotionTokens): MotionTokens {
+export function layTokens(mine: MotionTokens, link: MotionTokens): MotionTokens {
   let out = mine;
   for (const [name, ms] of Object.entries(link.durations)) {
     if (name in out.durations) out = setDurationToken(out, name, ms);
