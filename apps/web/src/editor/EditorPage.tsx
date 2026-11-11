@@ -22,13 +22,20 @@ import { Canvas } from './Canvas';
 import './editor.css';
 import { ExportButton } from './ExportButton';
 import { Inspector } from './Inspector';
+import { PhoneView } from '../phone/PhoneView';
+import { usePhone } from '../phone/usePhone';
 import { useEditor } from './store';
+
+/** Phone-sized screens get the viewer instead of the editor (decision 024). */
+export function EditorPage() {
+  return usePhone() ? <PhoneView /> : <Workbench />;
+}
 
 /**
  * The editor: pick an icon, clone state A into B, shape B by dragging points and handles,
  * and try the result live. Work is saved in this browser as you go.
  */
-export function EditorPage() {
+function Workbench() {
   const source = useEditor((s) => s.source);
   const animation = useEditor((s) => s.animation);
   const error = useEditor((s) => s.error);

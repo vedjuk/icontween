@@ -60,6 +60,14 @@ anything. There was no Cloudflare project, Wrangler config, SPA fallback or soci
   moments that matter", and the description is the landing page's lede. The same tags serve
   every path, since there's one `index.html`.
 
+- **Only `main` builds** (added 2026-11-11). Workers Builds also builds every other branch
+  and runs `npx wrangler preview` (Worker Previews, beta) on it. That needs a `previews`
+  block in `wrangler.jsonc`, so the first pull request's build failed at the deploy step.
+  The owner tests locally before merging, so they're turned off in the dashboard: Settings →
+  Builds → **Previews Base** tab → "Builds for Preview branches". (The Production tab's
+  "Disable builds" would stop `main` deploying.) To bring them back: add `"previews": {}`
+  and `"preview_urls": true` to `wrangler.jsonc`, then switch it on again.
+
 ## Alternatives
 
 - **Cloudflare Pages:** serves a SPA fallback when there's no top-level `404.html`, with no

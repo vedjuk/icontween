@@ -238,3 +238,15 @@
 - **2026-11-11** — Landing: "See the starters" now scrolls smoothly to the section instead of
   jumping (`scroll-behavior: smooth` on `html:has(.landing)`). It's off for reduced motion, and the
   editor's skip link still jumps.
+- **2026-11-11** — **Phone viewer** (decision 024, branch `phones-view`). Below 48rem,
+  `/editor` and `/prepare` show one animation large and at 48/24/16, played by the shipped
+  runtime, with a Motion switch, its purpose, trigger, sequence, timing and reduced motion
+  (read only), "Editing needs a bigger screen" with Copy link / Share, and a picker (yours,
+  then starters). It never writes to the saved project. On touch, hover animations play as a
+  toggle. The landing's card links say "View" on phones. Shared label tables moved to
+  `editor/labels.ts`, the starter set to `starterSet.ts`. Checked at 375px in the browser
+  pane: no sideways scroll, share link, tap toggle, appear replay, picker and Back, desktop
+  editor unchanged. Next: the owner checks on a real phone.
+- **2026-11-11** — The `phones-view` pull request's Cloudflare check failed: branch builds run
+  `npx wrangler preview`, which needs a `previews` block. Production was untouched. The owner
+  chose to turn Preview Builds off and build only `main` (noted in decision 022).
