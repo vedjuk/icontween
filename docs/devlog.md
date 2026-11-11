@@ -247,3 +247,6 @@
   `editor/labels.ts`, the starter set to `starterSet.ts`. Checked at 375px in the browser
   pane: no sideways scroll, share link, tap toggle, appear replay, picker and Back, desktop
   editor unchanged. Next: the owner checks on a real phone.
+- **2026-11-11** — The `phones-view` pull request's Cloudflare check failed: branch builds run
+  `npx wrangler preview`, which needs a `previews` block. Production was untouched. The owner
+  chose to turn Preview Builds off and build only `main` (noted in decision 022).
