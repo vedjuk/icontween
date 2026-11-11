@@ -10,5 +10,8 @@
     // picks the page from the path.
     "not_found_handling": "single-page-application",
   },
-  // The custom domain is added in the Cloudflare dashboard, so deploys never touch DNS.
+  // The site's address. A deploy attaches it to the Worker, and Cloudflare creates the one DNS
+  // record and certificate for it in the vedjuk.com zone. With a custom domain set, the
+  // workers.dev address is off.
+  "routes": [{ "pattern": "icontween.vedjuk.com", "custom_domain": true }],
 }

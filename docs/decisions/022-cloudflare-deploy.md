@@ -30,8 +30,12 @@ anything. There was no Cloudflare project, Wrangler config, SPA fallback or soci
 - **One address in code:** `SITE_URL` in `packages/core/src/site.ts` is what exports name in
   their header comment. `index.html`, the runtime's banner and types, and the README spell
   it out, and `site-url.test.ts` checks they match it.
-- **The custom domain is added in the dashboard,** not with `routes` in the config, so a
-  deploy never creates or changes DNS records.
+- **The custom domain is declared in `wrangler.jsonc`** (`routes` with `custom_domain: true`),
+  so a deploy attaches it, and Cloudflare manages that one DNS record and its certificate.
+  The plan was to add it in the dashboard so deploys never touch DNS, but the dashboard's
+  Add Domain dialog wouldn't find the vedjuk.com zone, though it's in the same account. The
+  record is only `icontween.vedjuk.com`. The rest of vedjuk.com, including the portfolio,
+  isn't touched. With `routes` set, the `workers.dev` address is off by default.
 - **`_headers` stays the one place for headers.** Workers static assets read it like Pages
   did. It gains `Cache-Control: public, max-age=31536000, immutable` for `/assets/*`, since
   Vite puts a content hash in those file names.

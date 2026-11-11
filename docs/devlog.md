@@ -219,3 +219,8 @@
   from. A test checks that `index.html`, the runtime banner and types, and the README use
   the same address. Export snapshots and the README hero were rebuilt with it. Decision 022
   updated.
+- **2026-11-11** — Live on Cloudflare: Workers Builds deploys `main` (Node 24 set as a build
+  variable). The live headers were checked: SPA fallback, the strict CSP on the app, none on
+  the export preview, immutable `/assets`. The dashboard's Add Domain dialog wouldn't find
+  the vedjuk.com zone, so `icontween.vedjuk.com` is now declared in `wrangler.jsonc` as a
+  custom domain, attached on deploy (decision 022 updated).
