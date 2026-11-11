@@ -224,3 +224,7 @@
   the export preview, immutable `/assets`. The dashboard's Add Domain dialog wouldn't find
   the vedjuk.com zone, so `icontween.vedjuk.com` is now declared in `wrangler.jsonc` as a
   custom domain, attached on deploy (decision 022 updated).
+- **2026-11-11** — Automatic deploys: the Cloudflare Workers and Pages GitHub app had access
+  only to the portfolio repo, so pushes to `icontween` didn't start a build (the first
+  build only worked because the repo is public). The app now has access to `icontween` too,
+  so every push to `main` builds and deploys.
