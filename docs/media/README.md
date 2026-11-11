@@ -4,8 +4,11 @@
 `examples/starters.icontween.json` with IconTween's own SVG export. Run it again after tuning
 the starters.
 
-The root `README.md` has commented-out image lines for the three GIFs below. Record them, save
-them here with these exact names, then uncomment the lines in the README.
+The three GIFs below were recorded on 2026-11-11 by a Playwright script driving `pnpm dev`
+(fresh browser profile, 1200×760 at 2×, a drawn cursor), encoded with gifski at 800 px and
+15 fps. Each is under 300 KB. The script isn't in the repo yet. The shot list below is the
+original plan; the recordings differ: `prepare.gif` adds Lucide's smile from the Prepare page,
+and `edit.gif` uses the finished menu starter instead of building state B from scratch.
 
 General:
 

@@ -36,10 +36,9 @@ image. It's rebuilt from the starters with `pnpm readme-hero`.
 3. **Export clean code.** SVG with SMIL, HTML, React or JSON. Small, readable, and it plays
    exactly like the preview.
 
-<!-- GIF placeholders: docs/media/prepare.gif, docs/media/edit.gif. Uncomment once recorded.
-![Dropping an SVG in: the import report and the original over the prepared copy](docs/media/prepare.gif)
-![Picking a purpose, moving points in state B and playing the morph](docs/media/edit.gif)
--->
+![The Prepare step: adding an SVG, the cleanup report, and the original compared with the prepared copy](docs/media/prepare.gif)
+
+![The editor: switching to state B, dragging a point over the onion skin, and playing the morph in the preview](docs/media/edit.gif)
 
 The landing page has twelve starters made from [Lucide](https://lucide.dev) icons. Each opens in
 the editor so you can see how it's made.
@@ -56,9 +55,7 @@ stays still, as you chose), and says what it does in a comment at the top.
 | **React**          | `CopyIcon.tsx` | You're in a React app (18 or 19). Uses `icontween.js` + `icontween.d.ts`, downloaded once.                        |
 | **JSON**           | `copy.json`    | You want to drive the animation yourself with the runtime.                                                        |
 
-<!-- GIF placeholder: docs/media/export.gif. Uncomment once recorded.
-![The Export dialog: switching formats, the exported page playing, Copy](docs/media/export.gif)
--->
+![The Export dialog: playing the exported icon, switching formats, and copying the code](docs/media/export.gif)
 
 ### React
 

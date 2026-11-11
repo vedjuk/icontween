@@ -250,3 +250,8 @@
 - **2026-11-11** — The `phones-view` pull request's Cloudflare check failed: branch builds run
   `npx wrangler preview`, which needs a `previews` block. Production was untouched. The owner
   chose to turn Preview Builds off and build only `main` (noted in decision 022).
+- **2026-11-11** — README GIFs recorded: `prepare.gif` (adding Lucide's smile, cleanup report,
+  compare modes), `edit.gif` (menu starter: state B, drag a point, play the morph) and
+  `export.gif` (copy starter: play the export, switch formats, Copy). Scripted with Playwright
+  plus gifski (installed with Homebrew, not a repo dependency); 160–260 KB each. Linked from the
+  README. Next: the owner checks them by hand.
