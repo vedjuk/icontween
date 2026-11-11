@@ -235,3 +235,6 @@
   In headless Chrome, Export code's HTML + runtime preview plays (menu → close on click).
   `workers.dev` is off now that the custom domain is set.
   Next: the owner checks Safari and Firefox by hand, then the GIFs and the VoiceOver pass.
+- **2026-11-11** — Landing: "See the starters" now scrolls smoothly to the section instead of
+  jumping (`scroll-behavior: smooth` on `html:has(.landing)`). It's off for reduced motion, and the
+  editor's skip link still jumps.

@@ -16,6 +16,14 @@
   outline-offset: 3px;
 }
 
+/* In-page links ("See the starters") glide to their section, so you can see where you went.
+   Landing only: the editor's skip link should still jump. Off for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.landing) {
+    scroll-behavior: smooth;
+  }
+}
+
 /* --- Hero ----------------------------------------------------------------------------- */
 
 .landing-hero {
