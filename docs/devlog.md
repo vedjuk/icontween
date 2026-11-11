@@ -228,3 +228,10 @@
   only to the portfolio repo, so pushes to `icontween` didn't start a build (the first
   build only worked because the repo is public). The app now has access to `icontween` too,
   so every push to `main` builds and deploys.
+- **2026-11-11** — **icontween.vedjuk.com is live.** The push built and deployed on its own,
+  and the custom domain is attached. Checked on the live domain: SPA fallback for
+  `/editor`, `/editor/` and unknown paths, the strict CSP on the app, none on the export
+  preview (`X-Frame-Options` kept), immutable `/assets`, and `og:image` on the new address.
+  In headless Chrome, Export code's HTML + runtime preview plays (menu → close on click).
+  `workers.dev` is off now that the custom domain is set.
+  Next: the owner checks Safari and Firefox by hand, then the GIFs and the VoiceOver pass.
