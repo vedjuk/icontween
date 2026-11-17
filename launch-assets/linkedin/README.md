@@ -21,11 +21,15 @@ fresh browser profile, the Lucide starters only.
   summary updates (Toggle · base · Standard · Hold).
 - **6.3–10.6 s**, "Step 2 · Shape any point by hand": Clone A → B, select the top line, drag
   its right end down over the onion skin.
-- **10.6–12.6 s**, "Step 2 · Preview it at real size": click the preview tile, and the morph
+- **10.6–12.6 s**, "Step 3 · Preview it at real size": click the preview tile, and the morph
   plays at 48/24/16.
-- **12.6–17.2 s**, "Step 3 · Export small, readable code": Export code → SVG (no JS), zoom to
+- **12.6–17.2 s**, "Step 4 · Export small, readable code": Export code → SVG (no JS), zoom to
   the code, scroll from the header comment to the `<path>` and `<animate>`.
 - **17.2–19.6 s**: back to the grid, still (same as frame one, so the loop is seamless).
+
+The export in the video is the icon edited on camera (one point of the top line moved), so it
+reads "menu.svg · 4.1 KB, 1.0 KB gzipped". `icontween-export.png` is the unedited menu ↔ close
+starter, where all three lines move: 8.4 KB, 1.2 KB gzipped.
 
 The editor and export are the real app in a zoomed iframe. The captions, the drawn cursor and
 the click ripples are added by the stage page. The video doesn't show a preset beyond the

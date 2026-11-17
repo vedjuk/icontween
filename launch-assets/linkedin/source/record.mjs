@@ -122,7 +122,8 @@ await still('grid');
 await sleep(2500);
 
 // 2. Editor: pick a purpose
-await setShot(545, 58, 555, true);
+// Right of the title buttons (end x 677); bottom between "Uses the defaults." and Elements.
+await setShot(708, 58, 505, true);
 await p.evaluate(() => {
   caption('Step 1', 'Start from a purpose');
   scene('app');
@@ -165,7 +166,7 @@ await sleep(300);
 await still('dragged');
 
 // Preview the morph at real size
-await p.evaluate(() => caption('Step 2', 'Preview it at real size'));
+await p.evaluate(() => caption('Step 3', 'Preview it at real size'));
 await setShot(262, 58, 838);
 [x, y] = await at(f.locator('.preview-target'), 0, 10);
 await moveTo(x, y, 800);
@@ -175,7 +176,7 @@ await sleep(800);
 await still('toggled');
 
 // 3. Export
-await p.evaluate(() => caption('Step 3', 'Export small, readable code'));
+await p.evaluate(() => caption('Step 4', 'Export small, readable code'));
 [x, y] = await at(f.getByRole('button', { name: 'Export code' }));
 await moveTo(x, y, 650);
 await sleep(60);
