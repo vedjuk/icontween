@@ -255,3 +255,11 @@
   `export.gif` (copy starter: play the export, switch formats, Copy). Scripted with Playwright
   plus gifski (installed with Homebrew, not a repo dependency); 160–260 KB each. Linked from the
   README. Next: the owner checks them by hand.
+- **2026-11-17** — LinkedIn launch assets in `launch-assets/linkedin/` (not committed yet):
+  a 19.6 s 4:5 video (starters grid → purpose → drag a point → preview → SVG export → grid,
+  looping cleanly), a thumbnail, and 2× stills (hero, editor, export SVG/React, before/after).
+  Recorded with Playwright from a stage page framing the real app in a zoomed iframe, then
+  encoded to H.264 with ffmpeg. Post text fact-checked in `post-notes.md`. Found while
+  recording: clicking the canvas in Chrome draws the browser's blue focus outline (the app
+  only styles `:focus-visible`). Fixed in `editor.css` (`.canvas:focus:not(:focus-visible)`):
+  checked in Chrome that a click shows no outline and Tab still shows the vermilion ring.

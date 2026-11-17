@@ -46,6 +46,11 @@
   user-select: none;
 }
 
+/* Chrome draws its own focus outline on a clicked <svg tabindex>; keep only the keyboard ring. */
+.canvas:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .canvas-artboard {
   fill: var(--bg);
 }

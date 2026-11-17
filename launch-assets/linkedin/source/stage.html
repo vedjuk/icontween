@@ -1,0 +1,303 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>stage</title>
+    <style>
+      :root {
+        --bg: #fbfbfa;
+        --fg: #18181b;
+        --muted: #67676f;
+        --accent: #d9432a;
+        --border: #e4e4e7;
+        --surface: #fff;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        color: var(--fg);
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1350px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .scene:not(.hidden) {
+        transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1) 220ms;
+      }
+      .hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .wordmark {
+        margin: 0;
+        font-size: 84px;
+        letter-spacing: -0.03em;
+        line-height: 1;
+        text-align: center;
+      }
+      .wordmark .i {
+        font-weight: 400;
+      }
+      .wordmark .t {
+        font-weight: 700;
+        color: var(--accent);
+      }
+      #grid .wordmark {
+        position: absolute;
+        top: 104px;
+        left: 0;
+        right: 0;
+      }
+      #grid .tag {
+        position: absolute;
+        top: 212px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 34px;
+        color: var(--fg);
+        letter-spacing: -0.01em;
+      }
+      .tiles {
+        position: absolute;
+        top: 330px;
+        left: 84px;
+        display: grid;
+        grid-template-columns: repeat(4, 210px);
+        gap: 24px;
+      }
+      .tile {
+        width: 210px;
+        height: 210px;
+        border: 1.5px solid var(--border);
+        border-radius: 28px;
+        background: var(--surface);
+        display: grid;
+        place-items: center;
+        box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04);
+      }
+      .tile svg {
+        width: 100px;
+        height: 100px;
+        display: block;
+      }
+      .url {
+        position: absolute;
+        top: 1112px;
+        left: 0;
+        right: 0;
+        text-align: center;
+      }
+      .url span {
+        display: inline-block;
+        font-size: 34px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        padding: 18px 34px;
+        border-radius: 999px;
+        background: var(--fg);
+        color: #fff;
+      }
+      .url small {
+        display: block;
+        margin-top: 22px;
+        font-size: 24px;
+        color: var(--muted);
+      }
+      #app .cap {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 196px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+      #app .cap .k {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      #app .cap .l {
+        font-size: 44px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        transition: opacity 300ms;
+      }
+      .win {
+        position: absolute;
+        left: 40px;
+        top: 196px;
+        width: 1000px;
+        height: 1114px;
+        border-radius: 26px;
+        overflow: hidden;
+        border: 1.5px solid var(--border);
+        background: var(--bg);
+        box-shadow:
+          0 30px 60px -30px rgba(24, 24, 27, 0.25),
+          0 2px 6px rgba(24, 24, 27, 0.05);
+      }
+      .cam {
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform-origin: 0 0;
+        transition: transform 850ms cubic-bezier(0.65, 0, 0.35, 1);
+      }
+      .cam iframe {
+        display: block;
+        width: 1100px;
+        height: 1250px;
+        border: 0;
+        background: var(--bg);
+      }
+      #cursor {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 34px;
+        height: 34px;
+        pointer-events: none;
+        z-index: 10;
+        opacity: 0;
+        transition: opacity 250ms;
+        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+      }
+      .ripple {
+        position: absolute;
+        width: 56px;
+        height: 56px;
+        margin: -28px 0 0 -28px;
+        border-radius: 50%;
+        border: 3px solid var(--accent);
+        pointer-events: none;
+        z-index: 9;
+        animation: rip 520ms cubic-bezier(0.2, 0, 0, 1) forwards;
+      }
+      @keyframes rip {
+        from {
+          transform: scale(0.3);
+          opacity: 0.9;
+        }
+        to {
+          transform: scale(1.15);
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section id="grid" class="scene">
+      <h1 class="wordmark"><span class="i">icon</span><span class="t">tween</span></h1>
+      <p class="tag">Motion for the moments that matter.</p>
+      <div class="tiles" id="tiles"></div>
+      <div class="url">
+        <span>icontween.vedjuk.com</span><small>Free, open source, runs in your browser</small>
+      </div>
+    </section>
+    <section id="app" class="scene hidden">
+      <div class="cap">
+        <div class="k" id="capk"></div>
+        <div class="l" id="capl"></div>
+      </div>
+      <div class="win">
+        <div class="cam" id="cam"><iframe id="f" src="about:blank"></iframe></div>
+      </div>
+    </section>
+    <svg id="cursor" viewBox="0 0 24 24">
+      <path
+        d="M5 3 L5 19.5 L9.3 15.6 L12.2 21.8 L15 20.5 L12.2 14.5 L18 14.3 Z"
+        fill="#18181b"
+        stroke="#fff"
+        stroke-width="1.4"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <script>
+      const order = [
+        'lucide-pause',
+        'lucide-menu',
+        'lucide-lock',
+        'lucide-bell',
+        'lucide-copy',
+        'lucide-send',
+        'lucide-heart',
+        'lucide-eye-off',
+        'lucide-download',
+        'lucide-volume-2',
+        'lucide-search',
+        'lucide-refresh-cw',
+      ];
+      window.setupGrid = (icons, stagger) => {
+        const by = Object.fromEntries(icons.map((i) => [i.id, i]));
+        const t = document.getElementById('tiles');
+        order.forEach((id, i) => {
+          const d = document.createElement('div');
+          d.className = 'tile';
+          d.innerHTML = by[id].svg.replace('begin="0s"', `begin="${(i * stagger).toFixed(2)}s"`);
+          t.appendChild(d);
+        });
+      };
+      window.svgs = () => [...document.querySelectorAll('.tile svg')];
+      window.gridTime = (t, paused) => {
+        for (const s of svgs()) {
+          s.setCurrentTime(t);
+          paused ? s.pauseAnimations() : s.unpauseAnimations();
+        }
+      };
+      window.scene = (n) => {
+        for (const s of document.querySelectorAll('.scene'))
+          s.classList.toggle('hidden', s.id !== n);
+      };
+      window.caption = (k, l) => {
+        const L = document.getElementById('capl');
+        document.getElementById('capk').textContent = k;
+        L.textContent = l;
+      };
+      // Camera: show region {x,y,w} of the iframe (CSS px) across the 1000px window.
+      window.shot = (x, y, w, instant) => {
+        const c = document.getElementById('cam');
+        const s = 1000 / w;
+        if (instant) c.style.transition = 'none';
+        c.style.transform = `translate(${-x * s}px,${-y * s}px) scale(${s})`;
+        if (instant) {
+          c.offsetWidth;
+          c.style.transition = '';
+        }
+      };
+      const cur = document.getElementById('cursor');
+      window.cursor = (x, y, show) => {
+        cur.style.transform = `translate(${x - 7}px,${y - 4}px)`;
+        if (show !== undefined) cur.style.opacity = show ? 1 : 0;
+      };
+      window.ripple = (x, y) => {
+        const r = document.createElement('div');
+        r.className = 'ripple';
+        r.style.left = x + 'px';
+        r.style.top = y + 'px';
+        document.body.appendChild(r);
+        setTimeout(() => r.remove(), 600);
+      };
+    </script>
+  </body>
+</html>
